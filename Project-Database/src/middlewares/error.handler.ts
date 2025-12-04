@@ -1,0 +1,15 @@
+import type { Request, Response, NextFunction } from "express";
+import { errorResponse } from "../utils/response";
+
+export const erroHandler = (err: Error, _req: Request, res: Response, next: NextFunction) => {
+    console.error("ERROR:", err.message);
+
+    const statusCode = err.message.includes("tidak ditemukan") ? 404 : 400;
+
+    errorResponse(
+      res,
+      err.message || "Terjadi kesalahan server",
+      statusCode,
+      process.env.NODE_ENV === "development" ? { stack: err.stack } as { stack?: string } : null
+    );
+}

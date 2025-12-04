@@ -21,10 +21,6 @@ const app: Application = express();
 const HOST = process.env.HOST || "localhost";
 const PORT = process.env.PORT || 5000;
 
-interface CustomRequest extends Request {
-  startTime?: number;
-}
-
 app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
@@ -63,13 +59,13 @@ let productsElectronics: Product[]  = [
   },
 ];
 
-app.use((req: CustomRequest, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   console.log(`Request masuk: ${req.method} ${req.path}`);
   req.startTime = Date.now();
   next();
 });
 
-app.use((req: CustomRequest, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers["x-api-key"];
   if (!apiKey) {
     return res.status(401).json({
@@ -92,62 +88,6 @@ interface Product {
   deskripsi: string;
   harga: number;
 }
-
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data?: unknown;
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-  };
-  errors?:
-    | Array<{
-        field: string;
-        message: string;
-      }>
-    | { stack?: string };
-}
-
-const successResponse = (
-  res: Response,
-  message: string,
-  data: unknown = null,
-  pagination: { page: number; limit: number; total: number } | null = null,
-  statusCode: number = 200
-) => {
-  const response: ApiResponse = {
-    success: true,
-    message,
-  };
-
-  if (data !== null) {
-    response.data = data;
-  }
-  if (pagination) response.pagination = pagination;
-
-  return res.status(statusCode).json(response);
-};
-
-const errorResponse = (
-  res: Response,
-  message: string,
-  statusCode: number = 400,
-  errors:
-    | Array<{ field: string; message: string }>
-    | { stack?: string }
-    | null = null
-) => {
-  const response: ApiResponse = {
-    success: false,
-    message,
-  };
-
-  if (errors) response.errors = errors;
-
-  return res.status(statusCode).json(response);
-};
 
 const validate = (validations: ValidationChain[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
