@@ -6,7 +6,6 @@ import express, {
 } from "express";
 import morgan from "morgan";
 import helmet from "helmet";
-// import mongoose from "mongoose";
 import cors from "cors";
 import { errorHandler } from "./middleware/error.handler";
 import { successResponse } from "./utils/response";
@@ -15,11 +14,6 @@ import magicRouter from "./routes/magic.route";
 import { body } from "express-validator";
 
 const app: Application = express();
-
-// mongoose
-//   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/magic_auth")
-//   .then(() => console.log("✅ MongoDB connected"))
-//   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 app.use(helmet());
 app.use(cors());
