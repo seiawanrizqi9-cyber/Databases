@@ -1,90 +1,99 @@
-Berdasarkan modul di atas, berikut jawaban untuk soal Day 2:
+## This is my code in day 7
 
----
+postgres=# CREATE DATABASE toko_laptop_db
+postgres=# \c toko_laptop_db
+You are now connected to database "toko_laptop_db" as user "postgres".
+toko_laptop_db=# CREATE TABLE ElectronicDisplay (id SERIAL PRIMARY KEY,name VARCHAR(100) NOT NULL,category TEXT,price DECIMAL(10, 2
+) NOT NULL,is_active BOOLEAN DEFAULT true);
+CREATE TABLE
+toko_laptop_db=# INSERT INTO ElectronicDisplay (name,category, price) VALUES ('Xiaomi Redmi Note 13', 'Smartphone', 3299000), ('ASU
+S Vivobook 15', 'Laptop', 67500000), ('Apple iPad', 'Tablet', 74990000), ('Lenovo IdeaPad Gaming 3', 'Laptop', 9800000), ('Samsung
+Galaxy Buds2 Pro', 'Earbuds', 2999000), ('Samsung Galaxy A35 5G', 'Smartphone', 4999000), ('Samsung Galaxy Watch6', 'Smartwatch', 3
+999000);
+INSERT 0 7
+toko_laptop_db=# SELECT * FROM ElectronicDisplay;
+ id |           name           |  category  |    price    | is_active
+----+--------------------------+------------+-------------+-----------
+  1 | Xiaomi Redmi Note 13     | Smartphone |  3299000.00 | t
+  2 | ASUS Vivobook 15         | Laptop     | 67500000.00 | t
+  3 | Apple iPad               | Tablet     | 74990000.00 | t
+  4 | Lenovo IdeaPad Gaming 3  | Laptop     |  9800000.00 | t
+  5 | Samsung Galaxy Buds2 Pro | Earbuds    |  2999000.00 | t
+  6 | Samsung Galaxy A35 5G    | Smartphone |  4999000.00 | t
+  7 | Samsung Galaxy Watch6    | Smartwatch |  3999000.00 | t
+(7 rows)
 
-### **1. Apa itu routing dalam konteks Express.js?**
-**Routing** dalam Express.js adalah mekanisme untuk menangani **permintaan HTTP** (seperti GET, POST, PUT, DELETE) dari klien ke **jalur (path) tertentu** pada server. Setiap rute terdiri dari:
-- **HTTP method** (GET, POST, dll.)
-- **Path/URL** yang didefinisikan
-- **Handler function** yang akan dieksekusi ketika rute tersebut cocok dengan permintaan.
 
-Contoh dalam modul:
-```javascript
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-```
-Artinya: Ketika ada permintaan **GET** ke path **/** , server akan menjalankan fungsi handler dan mengirim respons `Hello World!`.
+toko_laptop_db=# UPDATE ElectronicDisplay SET price = 6750000 WHERE id = 2;
+UPDATE 1
+toko_laptop_db=# UPDATE ElectronicDisplay SET price = 7499000 WHERE id = 3;
+UPDATE 1
 
----
 
-### **2. Jelaskan perbedaan antara route static dan route dinamis!**
-- **Route Static:**
-  - Path-nya **tetap** (statis) dan **harus persis** sama dengan yang didefinisikan.
-  - Contoh: `/berita`, `/categories`, `/page/categories`.
+toko_laptop_db=# SELECT * FROM ElectronicDisplay order by id;
+ id |           name           |  category  |   price    | is_active
+----+--------------------------+------------+------------+-----------
+  1 | Xiaomi Redmi Note 13     | Smartphone | 3299000.00 | t
+  2 | ASUS Vivobook 15         | Laptop     | 6750000.00 | t
+  3 | Apple iPad               | Tablet     | 7499000.00 | t
+  4 | Lenovo IdeaPad Gaming 3  | Laptop     | 9800000.00 | t
+  5 | Samsung Galaxy Buds2 Pro | Earbuds    | 2999000.00 | t
+  6 | Samsung Galaxy A35 5G    | Smartphone | 4999000.00 | t
+  7 | Samsung Galaxy Watch6    | Smartwatch | 3999000.00 | t
+(7 rows)
 
-- **Route Dinamis:**
-  - Path-nya **dapat berubah-ubah** karena mengandung **parameter** yang dapat diganti nilai.
-  - Ditandai dengan tanda **`:`** di depan nama parameter.
-  - Contoh: `/berita/:id` → dapat diakses dengan `/berita/1`, `/berita/100`, dll.
-  - Berguna untuk menangani data yang bervariasi (misalnya artikel berdasarkan ID).
 
----
+toko_laptop_db=# SELECT * FROM ElectronicDisplay WHERE price > 5000000;
+ id |          name           | category |   price    | is_active
+----+-------------------------+----------+------------+-----------
+  4 | Lenovo IdeaPad Gaming 3 | Laptop   | 9800000.00 | t
+  2 | ASUS Vivobook 15        | Laptop   | 6750000.00 | t
+  3 | Apple iPad              | Tablet   | 7499000.00 | t
+(3 rows)
 
-### **3. Bagaimana cara menangkap parameter route di Express.js? Berikan contoh singkat!**
-Parameter route dinamis ditangkap melalui objek **`req.params`**.
 
-**Contoh:**
-```javascript
-// Definisi route
-app.get('/berita/:id', (req, res) => {
-  const idBerita = req.params.id; // Menangkap nilai parameter 'id'
-  res.send(`Anda membuka berita dengan ID: ${idBerita}`);
-});
-```
-- Jika diakses: `GET /berita/123` → Output: `Anda membuka berita dengan ID: 123`.
+toko_laptop_db=# SELECT * FROM ElectronicDisplay WHERE category LIKE '%Laptop%';
+ id |          name           | category |   price    | is_active
+----+-------------------------+----------+------------+-----------
+  4 | Lenovo IdeaPad Gaming 3 | Laptop   | 9800000.00 | t
+  2 | ASUS Vivobook 15        | Laptop   | 6750000.00 | t
+(2 rows)
 
----
 
-### **4. Apa fungsi middleware dalam proses routing di Express.js?**
-Middleware dalam Express.js berfungsi sebagai **penengah (interceptor)** yang:
-- Dapat **mengeksekusi kode** sebelum atau setelah proses routing.
-- **Mengubah objek request (`req`)** atau **response (`res`)**.
-- **Menghentikan request** (misalnya jika tidak terautentikasi) atau **melanjutkan ke proses berikutnya** dengan `next()`.
+toko_laptop_db=# SELECT * FROM ElectronicDisplay order by price;
+ id |           name           |  category  |   price    | is_active
+----+--------------------------+------------+------------+-----------
+  5 | Samsung Galaxy Buds2 Pro | Earbuds    | 2999000.00 | t
+  1 | Xiaomi Redmi Note 13     | Smartphone | 3299000.00 | t
+  7 | Samsung Galaxy Watch6    | Smartwatch | 3999000.00 | t
+  6 | Samsung Galaxy A35 5G    | Smartphone | 4999000.00 | t
+  2 | ASUS Vivobook 15         | Laptop     | 6750000.00 | t
+  3 | Apple iPad               | Tablet     | 7499000.00 | t
+  4 | Lenovo IdeaPad Gaming 3  | Laptop     | 9800000.00 | t
+(7 rows)
 
-**Contoh dalam modul:**
-- Middleware `myLogger` mencetak log setiap ada permintaan.
-- Middleware `body-parser` untuk memparsing body request (JSON atau form).
-- Middleware `cors` untuk mengizinkan permintaan dari origin berbeda.
+toko_laptop_db=# SELECT * FROM ElectronicDisplay order by price desc;
+ id |           name           |  category  |   price    | is_active
+----+--------------------------+------------+------------+-----------
+  4 | Lenovo IdeaPad Gaming 3  | Laptop     | 9800000.00 | t
+  3 | Apple iPad               | Tablet     | 7499000.00 | t
+  2 | ASUS Vivobook 15         | Laptop     | 6750000.00 | t
+  6 | Samsung Galaxy A35 5G    | Smartphone | 4999000.00 | t
+  7 | Samsung Galaxy Watch6    | Smartwatch | 3999000.00 | t
+  1 | Xiaomi Redmi Note 13     | Smartphone | 3299000.00 | t
+  5 | Samsung Galaxy Buds2 Pro | Earbuds    | 2999000.00 | t
+(7 rows)
 
----
 
-### **5. Jelaskan bagaimana Express.js menentukan route mana yang akan dijalankan saat menerima request!**
-Express.js menentukan rute dengan **mencocokkan** dua hal:
-1. **HTTP Method** (GET, POST, dll.)
-2. **Path/URL** yang diminta.
-
-**Alur pencocokan:**
-- Express akan **membaca rute dari atas ke bawah** (sesuai urutan penulisan kode).
-- Jika ditemukan rute dengan **method dan path yang cocok**, maka handler-nya akan dieksekusi.
-- Jika **tidak cocok**, Express akan melanjutkan ke rute berikutnya.
-- Jika **tidak ada yang cocok** hingga akhir, maka akan masuk ke **middleware 404** (jika didefinisikan).
-
-**Contoh:**
-```javascript
-app.get('/berita', (req, res) => {
-  res.send('Daftar berita');
-});
-
-app.get('/berita/:id', (req, res) => {
-  res.send(`Detail berita ID: ${req.params.id}`);
-});
-```
-- Request `GET /berita` → cocok dengan rute pertama.
-- Request `GET /berita/5` → cocok dengan rute kedua (dinamis).
-- Request `POST /berita` → tidak cocok (akan error `Cannot POST /berita`).
-
----
-
-**Kesimpulan:**
-Routing di Express.js fleksibel, mendukung **static** dan **dynamic routes**, dengan middleware sebagai alat bantu untuk menangani logika tambahan dalam alur permintaan.
+toko_laptop_db=# DELETE FROM ElectronicDisplay WHERE id = 5;
+DELETE 1
+toko_laptop_db=# SELECT * FROM ElectronicDisplay order by price desc;
+ id |          name           |  category  |   price    | is_active
+----+-------------------------+------------+------------+-----------
+  4 | Lenovo IdeaPad Gaming 3 | Laptop     | 9800000.00 | t
+  3 | Apple iPad              | Tablet     | 7499000.00 | t
+  2 | ASUS Vivobook 15        | Laptop     | 6750000.00 | t
+  6 | Samsung Galaxy A35 5G   | Smartphone | 4999000.00 | t
+  7 | Samsung Galaxy Watch6   | Smartwatch | 3999000.00 | t
+  1 | Xiaomi Redmi Note 13    | Smartphone | 3299000.00 | t
+(6 rows)
