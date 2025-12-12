@@ -7,5 +7,5 @@
  *
  * 🟢 You can import this file directly.
  */
-import * as $Enums from "./enums.js";
+import * as $Enums from "./enums";
 //# sourceMappingURL=commonInputTypes.js.map

@@ -1,5 +1,5 @@
 import * as runtime from "@prisma/client/runtime/client";
-import type * as Prisma from "./prismaNamespace.js";
+import type * as Prisma from "./prismaNamespace";
 export type LogOptions<ClientOptions extends Prisma.PrismaClientOptions> = 'log' extends keyof ClientOptions ? ClientOptions['log'] extends Array<Prisma.LogLevel | Prisma.LogDefinition> ? Prisma.GetEvents<ClientOptions['log']> : never : never;
 export interface PrismaClientConstructor {
     /**
@@ -9,8 +9,8 @@ export interface PrismaClientConstructor {
    * @example
    * ```
    * const prisma = new PrismaClient()
-   * // Fetch zero or more Products
-   * const products = await prisma.product.findMany()
+   * // Fetch zero or more Categories
+   * const categories = await prisma.category.findMany()
    * ```
    *
    * Read more in our [docs](https://pris.ly/d/client).
@@ -26,8 +26,8 @@ export interface PrismaClientConstructor {
  * @example
  * ```
  * const prisma = new PrismaClient()
- * // Fetch zero or more Products
- * const products = await prisma.product.findMany()
+ * // Fetch zero or more Categories
+ * const categories = await prisma.category.findMany()
  * ```
  *
  * Read more in our [docs](https://pris.ly/d/client).
@@ -112,13 +112,24 @@ export interface PrismaClient<in LogOpts extends Prisma.LogLevel = never, in out
         extArgs: ExtArgs;
     }>>;
     /**
- * `prisma.product`: Exposes CRUD operations for the **Product** model.
+ * `prisma.category`: Exposes CRUD operations for the **Category** model.
   * Example usage:
   * ```ts
-  * // Fetch zero or more Products
-  * const products = await prisma.product.findMany()
+  * // Fetch zero or more Categories
+  * const categories = await prisma.category.findMany()
   * ```
   */
+    get category(): Prisma.CategoryDelegate<ExtArgs, {
+        omit: OmitOpts;
+    }>;
+    /**
+     * `prisma.product`: Exposes CRUD operations for the **Product** model.
+      * Example usage:
+      * ```ts
+      * // Fetch zero or more Products
+      * const products = await prisma.product.findMany()
+      * ```
+      */
     get product(): Prisma.ProductDelegate<ExtArgs, {
         omit: OmitOpts;
     }>;

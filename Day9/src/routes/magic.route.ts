@@ -1,14 +1,14 @@
 import { Router } from "express";
-import { 
-  requestMagicLink, 
-  verifyMagicToken, 
-  validateSession, 
-  getUserProfile 
+import {
+  requestMagicLink,
+  verifyMagicToken,
+  validateSession,
+  getUserProfile,
 } from "../controllers/magicLogin.controller";
-import { 
-  requestMagicLinkValidation, 
-  verifyTokenValidation, 
-  validate 
+import {
+  requestMagicLinkValidation,
+  verifyTokenValidation,
+  validate,
 } from "../middleware/magic.validation";
 
 const router = Router();

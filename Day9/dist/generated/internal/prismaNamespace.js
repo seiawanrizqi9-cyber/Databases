@@ -14,7 +14,7 @@
  * model files in the `model` directory!
  */
 import * as runtime from "@prisma/client/runtime/client";
-import {} from "./class.js";
+import {} from "./class";
 /**
  * Prisma Errors
  */
@@ -68,6 +68,7 @@ export const JsonNull = runtime.JsonNull;
  */
 export const AnyNull = runtime.AnyNull;
 export const ModelName = {
+    Category: 'Category',
     Product: 'Product'
 };
 /**
@@ -79,14 +80,22 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
     RepeatableRead: 'RepeatableRead',
     Serializable: 'Serializable'
 });
+export const CategoryScalarFieldEnum = {
+    id: 'id',
+    name: 'name',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
 export const ProductScalarFieldEnum = {
     id: 'id',
     name: 'name',
     description: 'description',
     price: 'price',
     stock: 'stock',
+    categoryId: 'categoryId',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    deletedAt: 'deletedAt'
 };
 export const SortOrder = {
     asc: 'asc',

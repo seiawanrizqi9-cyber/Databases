@@ -22,7 +22,7 @@ export const getById = async (req: Request, res: Response) => {
   if (!req.params.id) {
     throw new Error("Paramnya gk ada wok");
   }
-
+  
   const product = await getProductById(req.params.id);
 
   successResponse(res, "Produk berhasil diambil", product);

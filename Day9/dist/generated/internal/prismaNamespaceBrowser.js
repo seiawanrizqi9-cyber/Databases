@@ -39,6 +39,7 @@ export const JsonNull = runtime.JsonNull;
  */
 export const AnyNull = runtime.AnyNull;
 export const ModelName = {
+    Category: 'Category',
     Product: 'Product'
 };
 /*
@@ -50,14 +51,22 @@ export const TransactionIsolationLevel = {
     RepeatableRead: 'RepeatableRead',
     Serializable: 'Serializable'
 };
+export const CategoryScalarFieldEnum = {
+    id: 'id',
+    name: 'name',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+};
 export const ProductScalarFieldEnum = {
     id: 'id',
     name: 'name',
     description: 'description',
     price: 'price',
     stock: 'stock',
+    categoryId: 'categoryId',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    deletedAt: 'deletedAt'
 };
 export const SortOrder = {
     asc: 'asc',

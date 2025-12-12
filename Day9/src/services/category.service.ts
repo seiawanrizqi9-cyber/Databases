@@ -10,12 +10,12 @@ export const getCategoryById = async (id: string) => {
   const numId = parseInt(id);
 
   return await prisma.category.findUnique({
-    where: { id: numId },
+    where: { id: numId, deletedAt: null },
   });
 };
 
 export const createCategory = async (name: string) => {
-  const isExist = await prisma.category.findUnique({ where: { name } });
+  const isExist = await prisma.category.findUnique({ where: { name }  });
   if (isExist) throw new Error("Nama kategori sudah ada");
 
   return await prisma.category.create({
@@ -29,7 +29,7 @@ export const categoryUpdate = async (id: string, name: string) => {
   const numId = parseInt(id);
 
   return await prisma.category.update({
-    where: { id: numId },
+    where: { id: numId, deletedAt: null },
     data: { name },
   });
 };
@@ -37,5 +37,5 @@ export const categoryUpdate = async (id: string, name: string) => {
 export const removeCategory = async (id: string) => {
   const numId = parseInt(id);
 
-  return await prisma.category.delete({ where: { id: numId } });
+  return await prisma.category.delete({ where: { id: numId, deletedAt: null } });
 };

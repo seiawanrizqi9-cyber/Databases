@@ -3,10 +3,15 @@ import { getPrisma } from "../prisma";
 
 const prisma = getPrisma();
 
-export const getAllProducts = async (): Promise<{products: Product[], total: number}> => {
-    const products = await prisma.product.findMany({ include: { category: true } });
-    const total = products.length;
-
+export const getAllProducts = async (): Promise<{
+  products: Product[];
+  total: number;
+}> => {
+  const products = await prisma.product.findMany({
+    include: { category: true },
+    where: { deletedAt: null },
+  });
+  const total = products.length;
 
   return { products, total };
 };
@@ -14,7 +19,10 @@ export const getAllProducts = async (): Promise<{products: Product[], total: num
 export const getProductById = async (id: string): Promise<Product> => {
   const numId = parseInt(id);
 
-  const product = await prisma.product.findUnique({ where: { id: numId }, include: { category: true } });
+  const product = await prisma.product.findUnique({
+    where: { id: numId, deletedAt: null },
+    include: { category: true },
+  });
 
   if (!product) {
     throw new Error("Product tidak ditemukan");
@@ -40,6 +48,7 @@ export const searchProducts = async (
         ...(min_price && { gte: min_price }),
         ...(max_price && { lte: max_price }),
       },
+      deletedAt: null,
     },
     include: { category: true },
   });
@@ -72,7 +81,7 @@ export const updateProduct = async (
   const numId = parseInt(id);
 
   return await prisma.product.update({
-    where: { id: numId },
+    where: { id: numId, deletedAt: null },
     data,
   });
 };
@@ -80,5 +89,8 @@ export const updateProduct = async (
 export const deleteProduct = async (id: string): Promise<Product> => {
   const numId = parseInt(id);
 
-  return await prisma.product.delete({ where: { id: numId } });
+  return await prisma.product.update({
+    where: { id: numId, deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
 };

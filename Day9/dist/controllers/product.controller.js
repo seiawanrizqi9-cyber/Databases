@@ -25,6 +25,7 @@ export const create = async (req, res) => {
         nama: nama.toString(),
         ...(deskripsi && { deskripsi: deskripsi }),
         harga: Number(harga),
+        categoryId: Number(req.body.categoryId),
         stock: Number(stock),
     };
     const products = await createProduct(data);

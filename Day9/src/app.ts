@@ -10,8 +10,10 @@ import cors from "cors";
 import { errorHandler } from "./middleware/error.handler";
 import { successResponse } from "./utils/response";
 import productRouter from "./routes/product.route";
-import magicRouter from "./routes/magic.route";
-import categoryRouter from "./routes/category.routes";
+import magicRoute from "./routes/magic.route";
+import categoryRouter from "./routes/category.route";
+import orderRouter from "./routes/order.route";
+import orderItemRouter from "./routes/orderItems.route";
 
 const app: Application = express();
 
@@ -124,7 +126,66 @@ app.get("/", (_req: Request, res: Response) => {
         method: "PUT",
         description: "Mengubah kategori berdasarkan ID",
       },
-    ]
+      {
+        path: "/api/categories/:id",
+        method: "DELETE",
+        description: "Menghapus kategori",
+      },
+    ],
+    endpointsOrder: [
+      {
+        path: "/api/orders",
+        method: "GET",
+        description: "Menampilkan semua order",
+      },
+      {
+        path: "/api/orders/:id",
+        method: "GET",
+        description: "Menampilkan order berdasarkan ID",
+      },
+      {
+        path: "/api/orders",
+        method: "POST",
+        description: "Membuat order baru",
+      },
+      {
+        path: "/api/orders/:id",
+        method: "PUT",
+        description: "Mengubah order berdasarkan ID",
+      },
+      {
+        path: "/api/orders/:id",
+        method: "DELETE",
+        description: "Menghapus order",
+      },
+    ],
+    endpointsOrderItem: [
+      {
+        path: "/api/order-items",
+        method: "GET",
+        description: "Menampilkan semua order item",
+      },
+      {
+        path: "/api/order-items/:id",
+        method: "GET",
+        description: "Menampilkan order item berdasarkan ID",
+      },
+      {
+        path: "/api/order-items",
+        method: "POST",
+        description: "Membuat order item baru",
+      },
+      {
+        path: "/api/order-items/:id",
+        method: "PUT",
+        description: "Mengubah order item berdasarkan ID",
+      },
+      {
+        path: "/api/order-items/:id",
+        method: "DELETE",
+        description: "Menghapus order item",
+      },
+    ],
   });
 });
 
@@ -154,8 +215,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use("/api/products", productRouter);
-app.use("/api/auth", magicRouter);
+app.use("/api/auth", magicRoute);
 app.use("/api/categories", categoryRouter);
+app.use("/api/orders", orderRouter);
+app.use("/api/order-items", orderItemRouter);
 
 app.get(/.*/, (req: Request, _res: Response) => {
   throw new Error(`Route ${req.originalUrl} tidak ada di API E-Commerce`);
