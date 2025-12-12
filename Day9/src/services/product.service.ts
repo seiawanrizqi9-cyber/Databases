@@ -1,76 +1,84 @@
-import { products } from "../models/product.model"
+import type { Product } from "../generated/client";
+import { getPrisma } from "../prisma";
 
-export const getAllProducts = () => {
-    return { products: products, total: products.length }
-}
+const prisma = getPrisma();
 
-export const getProductById = (id: string) => {
-    const numId = parseInt(id)
+export const getAllProducts = async (): Promise<{products: Product[], total: number}> => {
+    const products = await prisma.product.findMany({ include: { category: true } });
+    const total = products.length;
 
-    const product = products.find(p => p.id === numId)
 
-    if (!product) {
-        throw new Error("Product tidak ditemukan")
-    }
+  return { products, total };
+};
 
-    return product
-}
+export const getProductById = async (id: string): Promise<Product> => {
+  const numId = parseInt(id);
 
-export const searchProducts = (name?: string, min_price?: string, max_price?: string) => {
-    let result = products;
+  const product = await prisma.product.findUnique({ where: { id: numId }, include: { category: true } });
 
-    if (name) {
-        result = result.filter(p =>
-            p.nama.toLowerCase().includes((name as string).toLowerCase())
-        );
-    }
+  if (!product) {
+    throw new Error("Product tidak ditemukan");
+  }
 
-    if (min_price) {
-        result = result.filter(p => p.harga >= Number(min_price));
-    }
+  return product;
+};
 
-    if (max_price) {
-        result = result.filter(p => p.harga <= Number(max_price));
-    }
+export const searchProducts = async (
+  name?: string,
+  min_price?: number,
+  max_price?: number
+): Promise<Product[]> => {
+  return await prisma.product.findMany({
+    where: {
+      ...(name && {
+        name: {
+          contains: name,
+          mode: "insensitive",
+        },
+      }),
+      price: {
+        ...(min_price && { gte: min_price }),
+        ...(max_price && { lte: max_price }),
+      },
+    },
+    include: { category: true },
+  });
+};
 
-    return result
-}
+export const createProduct = async (data: {
+  nama: string;
+  deskripsi?: string;
+  harga: number;
+  stock: number;
+  categoryId?: number;
+}): Promise<Product> => {
+  return await prisma.product.create({
+    data: {
+      name: data.nama,
+      description: data.deskripsi ?? null,
+      price: data.harga,
+      stock: data.stock,
+      categoryId: data.categoryId ?? null,
+    },
+  });
+};
 
-export const createProduct = (nama: string, deskripsi: string, harga: number) => {
-    const newProduct = {
-        id: products.length + 1,
-        nama,
-        deskripsi,
-        harga,
-    }
+export const updateProduct = async (
+  id: string,
+  data: Partial<Product>
+): Promise<Product> => {
+  await getProductById(id);
 
-    products.push(newProduct)
+  const numId = parseInt(id);
 
-    return products
-}
+  return await prisma.product.update({
+    where: { id: numId },
+    data,
+  });
+};
 
-export const updateProduct = (id: string, data: any) => {
-    const numId = parseInt(id)
-    const index = products.findIndex(p => p.id === numId)
+export const deleteProduct = async (id: string): Promise<Product> => {
+  const numId = parseInt(id);
 
-    if (index === -1) {
-        throw new Error("Produk tidak ditemukan")
-    }
-
-    products[index] = { ...products[index], ...data }
-
-    return products[index]
-}
-
-export const deleteProduct = (id: string) => {
-    const numId = parseInt(id)
-    const index = products.findIndex(p => p.id === numId)
-
-    if (index === -1) {
-        throw new Error("Produk tidak ditemukan")
-    }
-
-    const deleted = products.splice(index, 1)
-
-    return deleted
-}
+  return await prisma.product.delete({ where: { id: numId } });
+};

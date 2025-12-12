@@ -1,24 +1,4 @@
-import type { NextFunction, Request, Response } from "express"
-import { body, param, validationResult, type ValidationChain } from "express-validator"
-import { errorResponse } from "../utils/response"
-
-export const validate = (validations: ValidationChain[]) => {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        await Promise.all(validations.map(validation => validation.run(req)))
-
-        const errors = validationResult(req)
-        if (errors.isEmpty()) {
-            return next()
-        }
-
-        const errorList = errors.array().map(err => ({
-            field: err.type === 'field' ? err.path : 'unknown',
-            message: err.msg
-        }))
-
-        return errorResponse(res, "Validasi gagal", 400, errorList)
-    }
-}
+import { body, param } from "express-validator"
 
 export const createProductValidation = [
     body('nama')
@@ -31,8 +11,16 @@ export const createProductValidation = [
         .notEmpty().withMessage('Deskripsi wajib diisi'),
 
     body('harga')
-        .isNumeric().withMessage('Harga harus angka')
-        .custom(value => value > 0).withMessage('Harga harus lebih dari 0')
+        .isNumeric().withMessage('Harga harus angka').toFloat()
+        .custom(value => value > 0).withMessage('Harga harus lebih dari 0'),
+    
+    body ('stock')
+        .isNumeric().withMessage('Stock harus angka')
+        .custom(value => value > 0).withMessage('Stock harus lebih dari 0'),
+
+    body('categoryId')
+        .isNumeric().withMessage('ID kategori harus angka')
+        .custom(value => value > 0).withMessage('ID kategori harus lebih dari 0')
 ]
 
 export const getProductByIdValidation = [

@@ -11,7 +11,7 @@ import { errorHandler } from "./middleware/error.handler";
 import { successResponse } from "./utils/response";
 import productRouter from "./routes/product.route";
 import magicRouter from "./routes/magic.route";
-import { body } from "express-validator";
+import categoryRouter from "./routes/category.routes";
 
 const app: Application = express();
 
@@ -103,6 +103,28 @@ app.get("/", (_req: Request, res: Response) => {
         description: "Validate session token",
       },
     ],
+    endpointsCategory: [
+      {
+        path: "/api/categories",
+        method: "GET",
+        description: "Menampilkan semua kategori",
+      },
+      {
+        path: "/api/categories/:id",
+        method: "GET",
+        description: "Menampilkan kategori berdasarkan ID",
+      },
+      {
+        path: "/api/categories",
+        method: "POST",
+        description: "Menambahkan kategori baru",
+      },
+      {
+        path: "/api/categories/:id",
+        method: "PUT",
+        description: "Mengubah kategori berdasarkan ID",
+      },
+    ]
   });
 });
 
@@ -133,6 +155,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use("/api/products", productRouter);
 app.use("/api/auth", magicRouter);
+app.use("/api/categories", categoryRouter);
 
 app.get(/.*/, (req: Request, _res: Response) => {
   throw new Error(`Route ${req.originalUrl} tidak ada di API E-Commerce`);
