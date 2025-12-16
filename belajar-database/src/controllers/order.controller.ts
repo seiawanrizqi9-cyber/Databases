@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { successResponse } from "../utils/response";
+import { successResponse, errorResponse } from "../utils/response";
 import {
   createOrder,
   deleteOrder,
@@ -60,9 +60,21 @@ export const remove = async (req: Request, res: Response) => {
 };
 
 export const checkout = async (req: Request, res: Response) => {
-  const data: createOrder = req.body;
+  try {
+    const user_id = req.user?.id;
+    
+    if (!user_id) {
+      return errorResponse(res, "Unauthorized", 401);
+    }
 
-  const result = await checkoutOrder(data);
+    const data = {
+      user_id, 
+      orderItems: req.body.orderItems
+    };
 
-  successResponse(res, "Order berhasil dibuat", result, null, 201);
+    const result = await checkoutOrder(data);
+    successResponse(res, "Checkout berhasil", result, null, 201);
+  } catch (error: any) {
+    errorResponse(res, error.message || "Terjadi kesalahan", 400);
+  }
 };

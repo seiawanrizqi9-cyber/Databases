@@ -5,6 +5,10 @@ declare global {
     interface Request {
       startTime?: number;
       apikey?: string;
+      user?: {
+        id: number;
+        role: string;
+      }
     }
   }
 }

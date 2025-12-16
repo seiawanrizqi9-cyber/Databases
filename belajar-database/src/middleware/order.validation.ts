@@ -34,11 +34,6 @@ export const updateOrderValidation = [
 ];
 
 export const checkoutValidation = [
-  body("user_id")
-    .isNumeric().withMessage("User ID harus angka")
-    .toInt()
-    .custom(value => value > 0).withMessage("User ID harus lebih dari 0"),
-
   body("orderItems")
     .isArray({ min: 1 }).withMessage("Order items harus berupa array minimal 1 item"),
 
@@ -51,4 +46,4 @@ export const checkoutValidation = [
     .isNumeric().withMessage("Quantity harus angka")
     .toInt()
     .custom(value => value > 0).withMessage("Quantity harus lebih dari 0"),
-];
+]
