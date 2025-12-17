@@ -21,7 +21,7 @@ export const register = async (data: {
     const user = await prisma.user.create({
         data: {
             email: data.email,
-            name: data.name,
+            username: data.name,
             password_hash: hashedPassword,
             role: data.role || "USER"
         },
@@ -29,7 +29,7 @@ export const register = async (data: {
 
     return {
         email: user.email,
-        name: user.name,
+        name: user.username,
         role: user.role
     }
 }
@@ -53,7 +53,7 @@ export const login = async (data: { email: string; password: string }) => {
 
     const userReturn = {
         email: user.email,
-        name: user.name,
+        name: user.username,
         role: user.role
     }
 

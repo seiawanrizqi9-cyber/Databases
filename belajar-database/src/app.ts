@@ -14,7 +14,8 @@ import categoryRouter from "./routes/category.route";
 import orderRouter from "./routes/order.route";
 import orderItemRouter from "./routes/orderItems.route";
 import authRouter from "./routes/auth.route";
-import { authenticate } from "./middleware/auth.middleware";
+import { authenticate } from "./middleware/auth.validation";
+import profileRouter from "./routes/profile.route";
 
 const app: Application = express();
 
@@ -22,6 +23,7 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+app.use(express.static("public"));
 
 app.get("/", (_req: Request, res: Response) => {
   successResponse(res, "Selamat Datang Di API E-Commerce!", {
@@ -299,6 +301,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/orders", authenticate, orderRouter);
 app.use("/api/order-items", orderItemRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/profiles", profileRouter);
 
 app.get(/.*/, (req: Request, _res: Response) => {
   throw new Error(`Route ${req.originalUrl} tidak ada di API E-Commerce`);

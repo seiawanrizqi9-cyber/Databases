@@ -41,13 +41,20 @@ export const search = async (req: Request, res: Response) => {
 };
 
 export const create = async (req: Request, res: Response) => {
+  const file = req.file;
+  if (!file) throw new Error("image not found");
+
   const { nama, deskripsi, harga, stock } = req.body;
+
+  const imageUrl = `/public/uploads/${file.filename}`;
+  
   const data = {
     nama: nama.toString(),
     ...(deskripsi && { deskripsi: deskripsi }),
     harga: Number(harga),
     categoryId: Number(req.body.categoryId),
     stock: Number(stock),
+    image: imageUrl
   };
 
   const products = await createProduct(data);

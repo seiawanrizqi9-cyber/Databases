@@ -60,6 +60,7 @@ export const createProduct = async (data: {
   harga: number;
   stock: number;
   categoryId?: number;
+  image: string;
 }): Promise<Product> => {
   return await prisma.product.create({
     data: {
@@ -68,6 +69,7 @@ export const createProduct = async (data: {
       price: data.harga,
       stock: data.stock,
       categoryId: data.categoryId ?? null,
+      image: data.image
     },
   });
 };
