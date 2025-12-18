@@ -1,9 +1,60 @@
+import type { Category } from "../generated/client";
 import { getPrisma } from "../prisma";
 
 const prisma = getPrisma();
 
-export const getAllCategories = async () => {
-  return await prisma.category.findMany();
+interface FindAllParams {
+  page: number;
+  limit: number;
+  search?: {
+    name?: string;
+  };
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+interface categoryListResponse {
+  categories: Category[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+export const getAllCategories = async (
+  params: FindAllParams
+): Promise<categoryListResponse> => {
+  const { page, limit, search, sortBy, sortOrder } = params;
+  const skip = (page - 1) * limit;
+
+  const whereClause: any = {
+    deletedAt: null,
+  };
+
+  if (search?.name)
+    whereClause.name = {
+      contains: search.name,
+      mode: "insensitive",
+    };
+
+  const categories = await prisma.category.findMany({
+    skip: skip,
+    take: limit,
+    where: whereClause,
+    orderBy: sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" },
+  });
+
+  const total = await prisma.category.count({ where: whereClause });
+
+  return {
+    categories,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 };
 
 export const getCategoryById = async (id: string) => {

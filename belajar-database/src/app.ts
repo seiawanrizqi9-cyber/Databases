@@ -23,6 +23,7 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+app.set("query parser", "extended");
 app.use(express.static("public"));
 
 app.get("/", (_req: Request, res: Response) => {

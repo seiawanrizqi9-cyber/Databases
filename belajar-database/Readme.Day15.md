@@ -1,6 +1,6 @@
-# ** Postman **
+# **🎯 POSTMAN Testing**
 
-## **🔐 STEP 1: REGISTER USER BARU**
+## **📝 STEP 1: REGISTER USER**
 
 ### **Request:**
 ```http
@@ -12,26 +12,26 @@ X-API-Key: katasandi123
   "name": "Rizqi Setiawan",
   "email": "rizqi@example.com",
   "password": "password123",
-  "role": "USER"
+  "role": "ADMIN"
 }
 ```
 
 ### **Response Success (201):**
 ```json
 {
-    "success": true,
-    "message": "Register berhasil!",
-    "data": {
-        "email": "rizqi@example.com",
-        "name": "Rizqi Setiawan",
-        "role": "USER"
-    }
+  "success": true,
+  "message": "Register berhasil!",
+  "data": {
+    "email": "rizqi@example.com",
+    "name": "Rizqi Setiawan",
+    "role": "ADMIN"
+  }
 }
 ```
 
 ---
 
-## **🔑 STEP 2: LOGIN DAPAT TOKEN**
+## **🔐 STEP 2: LOGIN**
 
 ### **Request:**
 ```http
@@ -48,64 +48,24 @@ X-API-Key: katasandi123
 ### **Response Success (200):**
 ```json
 {
-    "success": true,
-    "message": "Login berhasil!",
-    "data": {
-        "userReturn": {
-            "email": "rizqi@example.com",
-            "name": "Rizqi Setiawan",
-            "role": "USER"
-        },
-        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTEsInJvbGUiOiJVU0VSIiwiaWF0IjoxNzY1OTc4MTQ3LCJleHAiOjE3NjU5ODE3NDd9.siPaGrtIDQiByXpdZj_oQHg1o2D75TldhjM5Qha5rZA"
-    }
-}
-```
-
----
-
-## **👤 STEP 3: CREATE PROFILE DENGAN FOTO**
-
-### **Request (FORM DATA):**
-```http
-POST http://localhost:5000/api/profiles
-X-API-Key: katasandi123
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-// Body → form-data
-Key: name        Value: Rizqi Setiawan
-Key: gender      Value: MALE
-Key: address     Value: Jogjakarta, Indonesia
-Key: image       Value: foto1.jpg
-```
-
-### **Response Success (201):**
-```json
-{
   "success": true,
-  "message": "Profile berhasil dibuat",
+  "message": "Login berhasil!",
   "data": {
-    "id": 1,
-    "gender": "MALE",
-    "address": "Jogjakarta, Indonesia",
-    "profile_picture_url": "/public/uploads/foto1.jpg",
-    "name": "Rizqi Setiawan",
-    "user_id": 1,
-    "createdAt": "2024-12-15T10:30:00.000Z",
-    "updatedAt": "2024-12-15T10:30:00.000Z",
-    "deletedAt": null,
-    "user": {
-      "id": 1,
-      "username": "Rizqi Setiawan",
+    "userReturn": {
       "email": "rizqi@example.com",
-      "role": "USER"
-    }
+      "name": "Rizqi Setiawan",
+      "role": "ADMIN"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6IkFETUlOIiwiaWF0IjoxNzM0MjQwMDAwLCJleHAiOjE3MzQyNDM2MDB9.testtoken123456"
   }
 }
 ```
 
+**TOKEN:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
 ---
 
-## **🏪 STEP 4: BUAT KATEGORI PRODUK**
+## **🏪 STEP 3: CREATE CATEGORY**
 
 ### **Request:**
 ```http
@@ -127,61 +87,112 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
   "data": {
     "id": 1,
     "name": "Electronics",
-    "createdAt": "2024-12-15T10:35:00.000Z",
-    "updatedAt": "2024-12-15T10:35:00.000Z",
-    "deletedAt": null
+    "createdAt": "2024-12-15T10:35:00.000Z"
   }
 }
 ```
 
 ---
 
-## **📦 STEP 5: BUAT PRODUK DENGAN GAMBAR**
+## **📦 STEP 4: CREATE PRODUCTS**
 
-### **Request (FORM DATA):**
+### **Request 1: iPhone**
 ```http
 POST http://localhost:5000/api/products
+Content-Type: application/json
 X-API-Key: katasandi123
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-// Body → form-data
-Key: name            Value: iPhone 15 Pro Max
-Key: description     Value: iPhone terbaru dengan kamera 48MP
-Key: price           Value: 1599.99
-Key: stock           Value: 50
-Key: categoryId      Value: 1
-Key: image           Value: iphone15.jpg
+{
+  "name": "iPhone 15 Pro",
+  "description": "iPhone terbaru",
+  "price": 1599.99,
+  "stock": 50,
+  "categoryId": 1
+}
 ```
 
-### **Response Success (201):**
+### **Request 2: MacBook**
+```http
+POST http://localhost:5000/api/products
+Content-Type: application/json
+X-API-Key: katasandi123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+{
+  "name": "MacBook Air M3",
+  "description": "Laptop tipis",
+  "price": 1299.99,
+  "stock": 30,
+  "categoryId": 1
+}
+```
+
+---
+
+## **🎯 STEP 5: TEST PAGINATION**
+
+### **5.1 PRODUCTS PAGINATION**
+```http
+GET http://localhost:5000/api/products?page=1&limit=2&search=iPhone&min_price=1000&max_price=2000&sortBy=price&sortOrder=asc
+X-API-Key: katasandi123
+```
+
+**Response:**
 ```json
 {
   "success": true,
-  "message": "Produk berhasil ditambahkan",
-  "data": {
-    "id": 1,
-    "name": "iPhone 15 Pro Max",
-    "description": "iPhone terbaru dengan kamera 48MP",
-    "price": "1599.99",
-    "stock": 50,
-    "image": "/public/uploads/iphone15.jpg",
-    "categoryId": 1,
-    "createdAt": "2024-12-15T10:40:00.000Z",
-    "updatedAt": "2024-12-15T10:40:00.000Z",
-    "deletedAt": null,
-    "category": {
+  "message": "Produk berhasil diambil",
+  "data": [
+    {
       "id": 1,
-      "name": "Electronics"
+      "name": "iPhone 15 Pro",
+      "price": "1599.99",
+      "stock": 50,
+      "categoryId": 1
     }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 2,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+### **5.2 CATEGORIES PAGINATION**
+```http
+GET http://localhost:5000/api/categories?page=1&limit=5&search=Elec&sortBy=name&sortOrder=asc
+X-API-Key: katasandi123
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Kategori berhasil diambil",
+  "data": [
+    {
+      "id": 1,
+      "name": "Electronics",
+      "createdAt": "2024-12-15T10:35:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 5,
+    "total": 1,
+    "totalPages": 1
   }
 }
 ```
 
 ---
 
-## **🛍️ STEP 6: CHECKOUT ORDER**
+## **🛒 STEP 6: CREATE ORDER**
 
-### **Request:**
+### **Checkout Request:**
 ```http
 POST http://localhost:5000/api/orders/checkout
 Content-Type: application/json
@@ -194,6 +205,10 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
       "product_id": 1,
       "quantity": 2
     },
+    {
+      "product_id": 2,
+      "quantity": 1
+    }
   ]
 }
 ```
@@ -207,59 +222,158 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
     "order_id": 1,
     "user_id": 1,
     "total": "4499.97",
-    "items": [
-      {
-        "product_id": 1,
-        "quantity": 2
-      },
-    ],
-    "created_at": "2024-12-15T10:50:00.000Z"
+    "items": [...]
   }
 }
 ```
 
 ---
 
-## **📋 STEP 7: LIHAT SEMUA PRODUK**
+## **🎯 STEP 7: TEST MORE PAGINATION**
+
+### **7.1 ORDERS PAGINATION**
+```http
+GET http://localhost:5000/api/orders?page=1&limit=3&min_total=1000&sortBy=createdAt&sortOrder=desc
+X-API-Key: katasandi123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Order berhasil diambil",
+  "data": [
+    {
+      "id": 1,
+      "total": "4499.97",
+      "user_id": 1,
+      "user": {
+        "username": "Rizqi Setiawan",
+        "email": "rizqi@example.com"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 3,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+### **7.2 ORDER ITEMS PAGINATION**
+```http
+GET http://localhost:5000/api/order-items?page=1&limit=4&order_id=1&sortBy=quantity&sortOrder=desc
+X-API-Key: katasandi123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Order items berhasil diambil",
+  "data": [
+    {
+      "id": 1,
+      "order_id": 1,
+      "product_id": 1,
+      "quantity": 2,
+      "product": {
+        "name": "iPhone 15 Pro",
+        "price": "1599.99"
+      }
+    },
+    {
+      "id": 2,
+      "order_id": 1,
+      "product_id": 2,
+      "quantity": 1,
+      "product": {
+        "name": "MacBook Air M3",
+        "price": "1299.99"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 4,
+    "total": 2,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+## **👤 STEP 8: CREATE PROFILE**
 
 ### **Request:**
 ```http
-GET http://localhost:5000/api/products
+POST http://localhost:5000/api/profiles
+Content-Type: application/json
 X-API-Key: katasandi123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+{
+  "name": "Rizqi Setiawan",
+  "gender": "MALE",
+  "address": "Jogja, Indonesia"
+}
+```
+
+### **Response Success (201):**
+```json
+{
+  "success": true,
+  "message": "Profile berhasil dibuat",
+  "data": {
+    "id": 1,
+    "name": "Rizqi Setiawan",
+    "gender": "MALE",
+    "address": "Jogja, Indonesia",
+    "user_id": 1
+  }
+}
+```
+
+---
+
+## **🎯 STEP 9: PROFILES PAGINATION**
+
+### **Request:**
+```http
+GET http://localhost:5000/api/profiles?page=1&limit=3&search=Rizqi&gender=MALE&sortBy=name&sortOrder=asc
+X-API-Key: katasandi123
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ### **Response Success (200):**
 ```json
 {
   "success": true,
-  "message": "Berhasil mengambil data produk",
+  "message": "Semua profile berhasil diambil",
   "data": [
     {
       "id": 1,
-      "name": "iPhone 15 Pro Max",
-      "description": "iPhone terbaru dengan kamera 48MP",
-      "price": "1599.99",
-      "stock": 48,  
-      "image": "/uploads/1702645300000-iphone15.jpg",
-      "categoryId": 1,
-      "createdAt": "2024-12-15T10:40:00.000Z"
-    },
-  ]
+      "name": "Rizqi Setiawan ",
+      "gender": "MALE",
+      "address": "jogja, Indonesia",
+      "user": {
+        "username": "Rizqi Setiawan",
+        "email": "rizqi@example.com",
+        "role": "ADMIN"
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 3,
+    "total": 1,
+    "totalPages": 1
+  }
 }
 ```
-
----
-
-## **🎯 SUMMARY FLOW:**
-
-```
-1. Register User → Dapat User ID
-2. Login → Dapat JWT Token
-3. Create Profile → Upload Foto Profil
-4. Create Category → Electronics
-5. Create Product 1 → iPhone dengan gambar
-6. Checkout Order → Beli produk
-7. View Products → Lihat stok berkurang
-```
-
-## **🎉 SELESAI!**
+## **Selesai**

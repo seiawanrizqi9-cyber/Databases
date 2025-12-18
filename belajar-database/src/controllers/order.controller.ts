@@ -10,9 +10,9 @@ import {
 } from "../services/order.service";
 
 export interface orderRequest extends Request {
-  user_id: number
-  total: number
-  orderItems: orderItem[]
+  user_id: number;
+  total: number;
+  orderItems: orderItem[];
 }
 
 export interface orderItem {
@@ -20,13 +20,38 @@ export interface orderItem {
   quantity: number;
 }
 
-export const getAll = async (_req: Request, res: Response) => {
-  const { orders, total } = await getAllOrders();
+export const getAll = async (req: Request, res: Response) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const search = req.query.search as any;
+  const sortBy = req.query.sortBy as string;
+  const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
 
-  successResponse(res, "Order berhasil diambil", {
-    jumlah: total,
-    data: orders,
+  let userId: number | undefined;
+
+  if (req.user) {
+    if (req.user.role !== "ADMIN") {
+      userId = req.user.id; 
+    }
+  }
+
+  const result = await getAllOrders({
+    page,
+    limit,
+    search,
+    sortBy,
+    sortOrder,
+    userId,
   });
+
+  const pagination = {
+    page: result.currentPage,
+    limit,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
+
+  successResponse(res, "Order berhasil diambil", result.orders, pagination);
 };
 
 export const getById = async (req: Request, res: Response) => {
@@ -62,14 +87,14 @@ export const remove = async (req: Request, res: Response) => {
 export const checkout = async (req: Request, res: Response) => {
   try {
     const user_id = req.user?.id;
-    
+
     if (!user_id) {
       return errorResponse(res, "Unauthorized", 401);
     }
 
     const data = {
-      user_id, 
-      orderItems: req.body.orderItems
+      user_id,
+      orderItems: req.body.orderItems,
     };
 
     const result = await checkoutOrder(data);

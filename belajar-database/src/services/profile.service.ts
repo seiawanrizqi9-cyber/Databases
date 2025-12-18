@@ -17,7 +17,25 @@ export interface UpdateProfileData {
   profile_picture_url?: string | null;
 }
 
-// CREATE - Buat profile baru
+interface ProfilesParams {
+  page: number;
+  limit: number;
+  search?: {
+    name?: string;
+    gender?: string;
+    address?: string;
+  };
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+interface ProfileListResponse {
+  profiles: any[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
+
 export const createProfile = async (data: CreateProfileData) => {
   // Cek apakah user sudah punya profile
   const existingProfile = await prisma.profile.findUnique({
@@ -58,7 +76,6 @@ export const createProfile = async (data: CreateProfileData) => {
   });
 };
 
-// READ - Get profile by user ID
 export const getProfileByUserId = async (userId: number) => {
   const profile = await prisma.profile.findUnique({
     where: { user_id: userId },
@@ -81,7 +98,6 @@ export const getProfileByUserId = async (userId: number) => {
   return profile;
 };
 
-// READ - Get profile by profile ID
 export const getProfileById = async (profileId: number) => {
   const profile = await prisma.profile.findUnique({
     where: { id: profileId },
@@ -104,7 +120,6 @@ export const getProfileById = async (profileId: number) => {
   return profile;
 };
 
-// UPDATE - Update profile
 export const updateProfile = async (profileId: number, data: UpdateProfileData) => {
   const profile = await prisma.profile.findUnique({
     where: { id: profileId }
@@ -150,7 +165,6 @@ export const updateProfile = async (profileId: number, data: UpdateProfileData) 
   });
 };
 
-// DELETE - Soft delete profile
 export const deleteProfile = async (profileId: number) => {
   const profile = await prisma.profile.findUnique({
     where: { id: profileId }
@@ -166,20 +180,62 @@ export const deleteProfile = async (profileId: number) => {
   });
 };
 
-// GET ALL - Get semua profile (admin only)
-export const getAllProfiles = async () => {
-  return await prisma.profile.findMany({
-    where: { deletedAt: null },
+export const getAllProfiles = async (
+  params: ProfilesParams
+): Promise<ProfileListResponse> => {
+  const { page, limit, search, sortBy, sortOrder } = params;
+  const skip = (page - 1) * limit;
+
+  const whereClause: any = {
+    deletedAt: null,
+  };
+
+  if (search?.name) {
+    whereClause.name = {
+      contains: search.name,
+      mode: "insensitive",
+    };
+  }
+
+  if (search?.gender) {
+    whereClause.gender = search.gender.toUpperCase();
+  }
+
+  if (search?.address) {
+    whereClause.address = {
+      contains: search.address,
+      mode: "insensitive",
+    };
+  }
+
+  const profiles = await prisma.profile.findMany({
+    skip: skip,
+    take: limit,
+    where: whereClause,
     include: {
       user: {
         select: {
           id: true,
           username: true,
           email: true,
-          role: true
+          role: true,
+          createdAt: true
         }
       }
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" },
   });
+
+  const total = await prisma.profile.count({ where: whereClause });
+
+  return {
+    profiles,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 };

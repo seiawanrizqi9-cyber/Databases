@@ -1,47 +1,90 @@
-import type { Order, OrderItem } from "../generated/client";
+import type { Order } from "../generated/client";
 import { getPrisma } from "../prisma";
 
 const prisma = getPrisma();
 
-export interface createOrder {
-  user_id: number;
+interface FindAllParams {
+  page: number;
+  limit: number;
+  search?: {
+    min_total?: number;  
+    max_total?: number; 
+  };
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  userId?: number | undefined;
+}
+
+interface OrderListResponse {
+  orders: Order[];
   total: number;
-  orderItems: OrderItem[];
+  totalPages: number;
+  currentPage: number;
 }
 
-export interface orderItem {
-  product_id: number;
-  quantity: number;
-}
+export const getAllOrders = async (
+  params: FindAllParams
+): Promise<OrderListResponse> => {
+  const { page, limit, search, sortBy, sortOrder, userId } = params;
+  const skip = (page - 1) * limit;
 
-export const getAllOrders = async () => {
+  const whereClause: any = {
+    deletedAt: null,
+  };
+
+  if (userId) {
+    whereClause.user_id = userId;
+  }
+
+  if (search?.min_total || search?.max_total) {
+    whereClause.total = {};
+    
+    if (search?.min_total) {
+      whereClause.total.gte = search.min_total;
+    }
+    
+    if (search?.max_total) {
+      whereClause.total.lte = search.max_total;
+    }
+  }
+
   const orders = await prisma.order.findMany({
-    where: { deletedAt: null },
+    skip: skip,
+    take: limit,
+    where: whereClause,
     include: {
-      user: { select: { name: true } },
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true
+        }
+      },
       orderItems: {
         include: {
-          product: { select: { name: true } },
-        },
-      },
+          product: {
+            select: {
+              name: true,
+              price: true
+            }
+          }
+        }
+      }
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" },
   });
 
-  const formattedOrders = orders.map((order) => ({
-    id: order.id,
-    nama_customer: (order as any).user?.name || "Unknown",
-    produk_dibeli: (order as any).orderItems
-      .map((item: any) => item.product?.name)
-      .filter(Boolean)
-      .join(", "),
-    total_harga: order.total,
-    tanggal: order.createdAt,
-  }));
+  const total = await prisma.order.count({ where: whereClause });
 
   return {
-    orders: formattedOrders,
-    total: orders.length,
+    orders,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
   };
 };
 

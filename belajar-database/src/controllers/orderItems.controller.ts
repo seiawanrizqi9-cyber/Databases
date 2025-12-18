@@ -8,13 +8,34 @@ import {
   updateOrderItem,
 } from "../services/orderItems.service";
 
-export const getAll = async (_req: Request, res: Response) => {
-  const { orderItems, total } = await getAllOrderItems();
+export const getAll = async (req: Request, res: Response) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const search = req.query.search as any;
+  const sortBy = req.query.sortBy as string;
+  const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
 
-  successResponse(res, "Order items berhasil diambil", {
-    jumlah: total,
-    data: orderItems,
+  const result = await getAllOrderItems({
+    page,
+    limit,
+    search,
+    sortBy,
+    sortOrder,
   });
+
+  const pagination = {
+    page: result.currentPage,
+    limit,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
+
+  successResponse(
+    res,
+    "Order items berhasil diambil",
+    result.orderItems,
+    pagination
+  );
 };
 
 export const getById = async (req: Request, res: Response) => {

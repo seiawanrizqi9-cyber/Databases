@@ -2,7 +2,6 @@ import { Router } from "express";
 import {
   getAll,
   getById,
-  search,
   create,
   update,
   remove,
@@ -19,7 +18,6 @@ const router = Router();
 
 router.get("/", getAll);
 router.get("/:id", validate(getProductByIdValidation), getById);
-router.get("/search", search);
 router.post(
   "/",
   authenticate,

@@ -30,7 +30,7 @@ export class MagicLoginService {
         user = await prisma.user.create({
           data: {
             email: cleanEmail,
-            name: userName,
+            username: userName,
             password_hash: passwordHash
           }
         });
@@ -114,7 +114,7 @@ export class MagicLoginService {
         { 
           userId: magicToken.user.id, 
           email: magicToken.user.email,
-          name: magicToken.user.name
+          name: magicToken.user.username
         },
         JWT_SECRET,
         { expiresIn: '7d' }
@@ -124,7 +124,7 @@ export class MagicLoginService {
         success: true,
         user: {
           id: magicToken.user.id,
-          name: magicToken.user.name,
+          name: magicToken.user.username,
           email: magicToken.user.email,
           createdAt: magicToken.user.createdAt
         },

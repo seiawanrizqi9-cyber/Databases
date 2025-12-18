@@ -9,20 +9,36 @@ import {
   updateProduct,
 } from "../services/product.service";
 
-export const getAll = async (_req: Request, res: Response) => {
-  const { products, total } = await getAllProducts();
+export const getAll = async (req: Request, res: Response) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const search = req.query.search as any;
+  const sortBy = req.query.sortBy as string;
+  const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
 
-  successResponse(res, "Produk berhasil diambil", {
-    jumlah: total,
-    data: products,
+  const result = await getAllProducts({
+    page,
+    limit,
+    search,
+    sortBy,
+    sortOrder,
   });
+
+  const pagination = {
+    page: result.currentPage,
+    limit,
+    total: result.total,
+    totalPages: result.totalPages,
+  };
+
+  successResponse(res, "Produk berhasil diambil", result.products, pagination);
 };
 
 export const getById = async (req: Request, res: Response) => {
   if (!req.params.id) {
     throw new Error("Paramnya gk ada wok");
   }
-  
+
   const product = await getProductById(req.params.id);
 
   successResponse(res, "Produk berhasil diambil", product);
@@ -47,14 +63,14 @@ export const create = async (req: Request, res: Response) => {
   const { nama, deskripsi, harga, stock } = req.body;
 
   const imageUrl = `/public/uploads/${file.filename}`;
-  
+
   const data = {
     nama: nama.toString(),
     ...(deskripsi && { deskripsi: deskripsi }),
     harga: Number(harga),
     categoryId: Number(req.body.categoryId),
     stock: Number(stock),
-    image: imageUrl
+    image: imageUrl,
   };
 
   const products = await createProduct(data);

@@ -101,20 +101,37 @@ export const remove = async (req: Request, res: Response) => {
   }
 };
 
-// GET ALL - Get semua profile (admin only)
 export const getAll = async (req: Request, res: Response) => {
   try {
-    // Cek role admin (opsional)
+    // Hanya admin yang bisa lihat semua profile
     if (req.user?.role !== 'ADMIN') {
       return errorResponse(res, "Access denied. Admin only.", 403);
     }
 
-    const profiles = await getAllProfiles();
-    successResponse(res, "Semua profile berhasil diambil", {
-      total: profiles.length,
-      profiles
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const search = req.query.search as any;
+    const sortBy = req.query.sortBy as string;
+    const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
+
+    const result = await getAllProfiles({
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
     });
+
+    const pagination = {
+      page: result.currentPage,
+      limit,
+      total: result.total,
+      totalPages: result.totalPages,
+    };
+
+    successResponse(res, "Semua profile berhasil diambil", result.profiles, pagination);
   } catch (error: any) {
     errorResponse(res, error.message, 500);
   }
 };
+

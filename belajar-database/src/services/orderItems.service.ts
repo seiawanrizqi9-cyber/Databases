@@ -3,17 +3,94 @@ import { getPrisma } from "../prisma";
 
 const prisma = getPrisma();
 
-export const getAllOrderItems = async (): Promise<{
-  orderItems: OrderItem[];
-  total: number;
-}> => {
-  const orderItems = await prisma.orderItem.findMany({
-    include: { product: true, order: true },
-    where: { deletedAt: null },
-  });
-  const total = orderItems.length;
+interface OrderItemsParams {
+  page: number;
+  limit: number;
+  search?: {
+    order_id?: number;
+    product_id?: number;
+    min_quantity?: number;
+    max_quantity?: number;
+  };
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
 
-  return { orderItems, total };
+interface OrderItemListResponse {
+  orderItems: any[];
+  total: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+export const getAllOrderItems = async (
+  params: OrderItemsParams
+): Promise<OrderItemListResponse> => {
+  const { page, limit, search, sortBy, sortOrder } = params;
+  const skip = (page - 1) * limit;
+
+  const whereClause: any = {};
+
+  if (search?.order_id) {
+    whereClause.order_id = search.order_id;
+  }
+
+  if (search?.product_id) {
+    whereClause.product_id = search.product_id;
+  }
+
+  if (search?.min_quantity || search?.max_quantity) {
+    whereClause.quantity = {};
+    
+    if (search?.min_quantity) {
+      whereClause.quantity.gte = search.min_quantity;
+    }
+    
+    if (search?.max_quantity) {
+      whereClause.quantity.lte = search.max_quantity;
+    }
+  }
+
+  const orderItems = await prisma.orderItem.findMany({
+    skip: skip,
+    take: limit,
+    where: whereClause,
+    include: {
+      order: {
+        select: {
+          id: true,
+          total: true,
+          user: {
+            select: {
+              username: true,
+              email: true
+            }
+          }
+        }
+      },
+      product: {
+        select: {
+          name: true,
+          price: true,
+          image: true
+        }
+      }
+    },
+    orderBy: sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" },
+  });
+
+  const total = await prisma.orderItem.count({ where: whereClause });
+
+  return {
+    orderItems,
+    total,
+    totalPages: Math.ceil(total / limit),
+    currentPage: page,
+  };
 };
 
 export const getOrderItemById = async (id: string): Promise<OrderItem> => {
