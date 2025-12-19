@@ -1,5 +1,6 @@
-import type { Order } from "../generated/client";
+import type { Prisma, Order } from "../generated/client";
 import { getPrisma } from "../prisma";
+import * as orderRepo from "../repository/order.repository";
 
 const prisma = getPrisma();
 
@@ -28,7 +29,7 @@ export const getAllOrders = async (
   const { page, limit, search, sortBy, sortOrder, userId } = params;
   const skip = (page - 1) * limit;
 
-  const whereClause: any = {
+  const whereClause: Prisma.OrderWhereInput = {
     deletedAt: null,
   };
 
@@ -48,37 +49,20 @@ export const getAllOrders = async (
     }
   }
 
-  const orders = await prisma.order.findMany({
-    skip: skip,
-    take: limit,
-    where: whereClause,
-    include: {
-      user: {
-        select: {
-          id: true,
-          username: true,
-          email: true
-        }
-      },
-      orderItems: {
-        include: {
-          product: {
-            select: {
-              name: true,
-              price: true
-            }
-          }
-        }
+  const sortCriteria: Prisma.OrderOrderByWithRelationInput = sortBy
+    ? {
+        [sortBy]: sortOrder || "desc",
       }
-    },
-    orderBy: sortBy
-      ? {
-          [sortBy]: sortOrder || "desc",
-        }
-      : { createdAt: "desc" },
-  });
+    : { createdAt: "desc" };
 
-  const total = await prisma.order.count({ where: whereClause });
+  const orders = await orderRepo.list(
+    skip,
+    limit,
+    whereClause,
+    sortCriteria
+  );
+
+  const total = await orderRepo.countAll(whereClause);
 
   return {
     orders,
@@ -91,17 +75,7 @@ export const getAllOrders = async (
 export const getOrderById = async (id: string) => {
   const numId = parseInt(id);
 
-  const order = await prisma.order.findUnique({
-    where: { id: numId, deletedAt: null },
-    include: {
-      user: { select: { name: true, email: true } },
-      orderItems: {
-        include: {
-          product: { select: { name: true, price: true } },
-        },
-      },
-    },
-  });
+  const order = await orderRepo.findById(numId);
 
   if (!order) throw new Error("Order tidak ditemukan");
 
@@ -123,11 +97,9 @@ export const createOrder = async (data: {
   user_id: number;
   total?: number;
 }): Promise<Order> => {
-  return await prisma.order.create({
-    data: {
-      user_id: data.user_id,
-      total: data.total || 0,
-    },
+  return await orderRepo.create({
+    user_id: data.user_id,
+    total: data.total || 0,
   });
 };
 
@@ -139,10 +111,7 @@ export const updateOrder = async (
 
   const numId = parseInt(id);
 
-  return await prisma.order.update({
-    where: { id: numId, deletedAt: null },
-    data,
-  });
+  return await orderRepo.update(numId, data);
 };
 
 export const checkout = async (data: {
@@ -235,8 +204,5 @@ export const checkout = async (data: {
 export const deleteOrder = async (id: string): Promise<Order> => {
   const numId = parseInt(id);
 
-  return await prisma.order.update({
-    where: { id: numId, deletedAt: null },
-    data: { deletedAt: new Date() },
-  });
+  return await orderRepo.softDelete(numId);
 };

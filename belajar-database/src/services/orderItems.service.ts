@@ -1,7 +1,5 @@
-import type { OrderItem } from "../generated/client";
-import { getPrisma } from "../prisma";
-
-const prisma = getPrisma();
+import type { OrderItem, Prisma } from "../generated/client";
+import * as orderItemsRepo from "../repository/orderItems.repository";
 
 interface OrderItemsParams {
   page: number;
@@ -17,7 +15,7 @@ interface OrderItemsParams {
 }
 
 interface OrderItemListResponse {
-  orderItems: any[];
+  orderItems: OrderItem[];
   total: number;
   totalPages: number;
   currentPage: number;
@@ -29,7 +27,7 @@ export const getAllOrderItems = async (
   const { page, limit, search, sortBy, sortOrder } = params;
   const skip = (page - 1) * limit;
 
-  const whereClause: any = {};
+  const whereClause: Prisma.OrderItemWhereInput = {};
 
   if (search?.order_id) {
     whereClause.order_id = search.order_id;
@@ -51,39 +49,20 @@ export const getAllOrderItems = async (
     }
   }
 
-  const orderItems = await prisma.orderItem.findMany({
-    skip: skip,
-    take: limit,
-    where: whereClause,
-    include: {
-      order: {
-        select: {
-          id: true,
-          total: true,
-          user: {
-            select: {
-              username: true,
-              email: true
-            }
-          }
-        }
-      },
-      product: {
-        select: {
-          name: true,
-          price: true,
-          image: true
-        }
+  const sortCriteria: Prisma.OrderItemOrderByWithRelationInput = sortBy
+    ? {
+        [sortBy]: sortOrder || "desc",
       }
-    },
-    orderBy: sortBy
-      ? {
-          [sortBy]: sortOrder || "desc",
-        }
-      : { createdAt: "desc" },
-  });
+    : { createdAt: "desc" };
 
-  const total = await prisma.orderItem.count({ where: whereClause });
+  const orderItems = await orderItemsRepo.list(
+    skip,
+    limit,
+    whereClause,
+    sortCriteria
+  );
+
+  const total = await orderItemsRepo.countAll(whereClause);
 
   return {
     orderItems,
@@ -96,10 +75,7 @@ export const getAllOrderItems = async (
 export const getOrderItemById = async (id: string): Promise<OrderItem> => {
   const numId = parseInt(id);
 
-  const orderItem = await prisma.orderItem.findUnique({
-    where: { id: numId, deletedAt: null },
-    include: { product: true, order: true },
-  });
+  const orderItem = await orderItemsRepo.findById(numId);
 
   if (!orderItem) {
     throw new Error("Order item tidak ditemukan");
@@ -108,39 +84,34 @@ export const getOrderItemById = async (id: string): Promise<OrderItem> => {
   return orderItem;
 };
 
+
 export const createOrderItem = async (data: {
   order_id: number;
   product_id: number;
   quantity: number;
 }): Promise<OrderItem> => {
-  return await prisma.orderItem.create({
-    data: {
-      order_id: data.order_id,
-      product_id: data.product_id,
-      quantity: data.quantity,
-    },
-  });
+  const createData: Prisma.OrderItemCreateInput = {
+    order: { connect: { id: data.order_id } },  
+    product: { connect: { id: data.product_id } }, 
+    quantity: data.quantity,
+  };
+
+  return await orderItemsRepo.create(createData);
 };
 
 export const updateOrderItem = async (
   id: string,
   data: Partial<OrderItem>
 ): Promise<OrderItem> => {
-  await getOrderItemById(id); // Sama seperti product service
+  await getOrderItemById(id);
 
   const numId = parseInt(id);
 
-  return await prisma.orderItem.update({
-    where: { id: numId, deletedAt: null },
-    data,
-  });
+  return await orderItemsRepo.update(numId, data);
 };
 
 export const deleteOrderItem = async (id: string): Promise<OrderItem> => {
   const numId = parseInt(id);
 
-  return await prisma.orderItem.update({
-    where: { id: numId, deletedAt: null },
-    data: { deletedAt: new Date() },
-  });
+  return await orderItemsRepo.softDelete(numId);
 };

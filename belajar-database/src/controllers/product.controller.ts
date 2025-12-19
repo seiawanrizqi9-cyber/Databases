@@ -5,7 +5,6 @@ import {
   deleteProduct,
   getAllProducts,
   getProductById,
-  searchProducts,
   updateProduct,
 } from "../services/product.service";
 
@@ -44,17 +43,6 @@ export const getById = async (req: Request, res: Response) => {
   successResponse(res, "Produk berhasil diambil", product);
 };
 
-export const search = async (req: Request, res: Response) => {
-  const { name, max_price, min_price } = req.query;
-
-  const result = await searchProducts(
-    name?.toString(),
-    Number(max_price),
-    Number(min_price)
-  );
-
-  successResponse(res, "Produk berhasil diambil", result);
-};
 
 export const create = async (req: Request, res: Response) => {
   const file = req.file;
