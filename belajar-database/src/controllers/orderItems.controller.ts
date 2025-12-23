@@ -1,70 +1,109 @@
 import type { Request, Response } from "express";
 import { successResponse } from "../utils/response";
-import {
-  createOrderItem,
-  deleteOrderItem,
-  getAllOrderItems,
-  getOrderItemById,
-  updateOrderItem,
-} from "../services/orderItems.service";
+import type { IOrderItemService } from "../services/orderItems.service";
 
-export const getAll = async (req: Request, res: Response) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
-  const search = req.query.search as any;
-  const sortBy = req.query.sortBy as string;
-  const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
+export interface IOrderItemController {
+  list: (req: Request, res: Response) => Promise<void>;
+  getById: (req: Request, res: Response) => Promise<void>;
+  create: (req: Request, res: Response) => Promise<void>;
+  update: (req: Request, res: Response) => Promise<void>;
+  delete: (req: Request, res: Response) => Promise<void>;
+}
 
-  const result = await getAllOrderItems({
-    page,
-    limit,
-    search,
-    sortBy,
-    sortOrder,
-  });
+export class OrderItemController implements IOrderItemController {
+  constructor(private orderItemService: IOrderItemService) {}
 
-  const pagination = {
-    page: result.currentPage,
-    limit,
-    total: result.total,
-    totalPages: result.totalPages,
-  };
+  async list(req: Request, res: Response): Promise<void> {
+    try {
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const search = req.query.search as any;
+      const sortBy = req.query.sortBy as string;
+      const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
 
-  successResponse(
-    res,
-    "Order items berhasil diambil",
-    result.orderItems,
-    pagination
-  );
-};
+      const result = await this.orderItemService.list({
+        page,
+        limit,
+        search,
+        sortBy,
+        sortOrder,
+      });
 
-export const getById = async (req: Request, res: Response) => {
-  const orderItem = await getOrderItemById(req.params.id!);
+      const pagination = {
+        page: result.currentPage,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      };
 
-  successResponse(res, "Order item berhasil diambil", orderItem);
-};
+      successResponse(
+        res,
+        "Order items berhasil diambil",
+        result.orderItems,
+        pagination
+      );
+    } catch (error: any) {
+      throw new Error(error.message || "Gagal mengambil order items");
+    }
+  }
 
-export const create = async (req: Request, res: Response) => {
-  const { order_id, product_id, quantity } = req.body;
-  const data = {
-    order_id: Number(order_id),
-    product_id: Number(product_id),
-    quantity: Number(quantity),
-  };
+  async getById(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        throw new Error("Parameter ID tidak ditemukan");
+      }
 
-  const orderItem = await createOrderItem(data);
+      const orderItem = await this.orderItemService.getById(req.params.id);
+      successResponse(res, "Order item berhasil diambil", orderItem);
+    } catch (error: any) {
+      throw new Error(error.message || "Order item tidak ditemukan");
+    }
+  }
 
-  successResponse(res, "Order item berhasil dibuat", orderItem, null, 201);
-};
+  async create(req: Request, res: Response): Promise<void> {
+    try {
+      const { order_id, product_id, quantity } = req.body;
 
-export const update = async (req: Request, res: Response) => {
-  const orderItem = await updateOrderItem(req.params.id!, req.body);
+      if (!order_id || !product_id || !quantity) {
+        throw new Error("Semua field wajib diisi: order_id, product_id, quantity");
+      }
 
-  successResponse(res, "Order item berhasil diupdate", orderItem);
-};
+      const data = {
+        order_id: Number(order_id),
+        product_id: Number(product_id),
+        quantity: Number(quantity),
+      };
 
-export const remove = async (req: Request, res: Response) => {
-  const deleted = await deleteOrderItem(req.params.id!);
+      const orderItem = await this.orderItemService.create(data);
+      successResponse(res, "Order item berhasil dibuat", orderItem, null, 201);
+    } catch (error: any) {
+      throw new Error(error.message || "Gagal membuat order item");
+    }
+  }
 
-  successResponse(res, "Order item berhasil dihapus", deleted);
-};
+  async update(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        throw new Error("Parameter ID tidak ditemukan");
+      }
+
+      const orderItem = await this.orderItemService.update(req.params.id, req.body);
+      successResponse(res, "Order item berhasil diupdate", orderItem);
+    } catch (error: any) {
+      throw new Error(error.message || "Gagal mengupdate order item");
+    }
+  }
+
+  async delete(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        throw new Error("Parameter ID tidak ditemukan");
+      }
+
+      const deleted = await this.orderItemService.delete(req.params.id);
+      successResponse(res, "Order item berhasil dihapus", deleted);
+    } catch (error: any) {
+      throw new Error(error.message || "Gagal menghapus order item");
+    }
+  }
+}

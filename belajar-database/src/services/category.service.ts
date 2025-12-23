@@ -1,5 +1,5 @@
 import type { Category, Prisma } from "../generated/client";
-import * as categoryRepo from "../repository/category.repository";
+import type { ICategoryRepository } from "../repository/category.repository";
 
 interface FindAllParams {
   page: number;
@@ -18,9 +18,18 @@ interface CategoryListResponse {
   currentPage: number;
 }
 
-export const getAllCategories = async (
-  params: FindAllParams
-): Promise<CategoryListResponse> => {
+export interface ICategoryService {
+  list(params: FindAllParams): Promise<CategoryListResponse>;
+  getById(id: string): Promise<Category | null>;
+  create(name: string): Promise<Category>;
+  update(id: string, name: string): Promise<Category>;
+  delete(id: string): Promise<Category>;
+}
+
+export class CategoryService implements ICategoryService {
+  constructor(private categoryRepo: ICategoryRepository) {}
+
+async list (params: FindAllParams): Promise<CategoryListResponse> {
   const { page, limit, search, sortBy, sortOrder } = params;
   const skip = (page - 1) * limit;
 
@@ -39,14 +48,14 @@ export const getAllCategories = async (
       }
     : { createdAt: "desc" };
 
-  const categories = await categoryRepo.list(
+  const categories = await this.categoryRepo.list(
     skip,
     limit,
     whereClause,
     sortCriteria
   );
 
-  const total = await categoryRepo.countAll(whereClause);
+  const total = await this.categoryRepo.countAll(whereClause);
 
   return {
     categories,
@@ -56,27 +65,25 @@ export const getAllCategories = async (
   };
 };
 
-export const getCategoryById = async (id: string): Promise<Category | null> => {
+async getById (id: string): Promise<Category | null> {
   const numId = parseInt(id);
-  return await categoryRepo.findById(numId);
+  return await this.categoryRepo.findById(numId);
 };
 
-export const createCategory = async (name: string): Promise<Category> => {
-  const isExist = await categoryRepo.findByName(name);
+async create (name: string ): Promise<Category> {
+  const isExist = await this.categoryRepo.findByName(name);
   if (isExist) throw new Error("Nama kategori sudah ada");
 
-  return await categoryRepo.create({ name });
+  return await this.categoryRepo.create({ name });
 };
 
-export const updateCategory = async (
-  id: string,
-  name: string
-): Promise<Category> => {
+async update (id: string, name: string ): Promise<Category>{
   const numId = parseInt(id);
-  return await categoryRepo.update(numId, { name });
+  return await this.categoryRepo.update(numId, { name });
 };
 
-export const deleteCategory = async (id: string): Promise<Category> => {
+async delete (id: string): Promise<Category>{
   const numId = parseInt(id);
-  return await categoryRepo.remove(numId);
+  return await this.categoryRepo.delete(numId);
 };
+}

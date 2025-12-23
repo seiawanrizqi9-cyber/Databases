@@ -1,5 +1,5 @@
-import type { Prisma, Product } from "../generated/client";
-import * as productRepo from "../repository/product.repository";
+import type { Category, Prisma, Product } from "../generated/client";
+import type { IProductRepository } from "../repository/product.repository";
 
 interface FindAllParams {
   page: number;
@@ -20,9 +20,20 @@ interface ProductListResponse {
   currentPage: number;
 }
 
-export const getAllProducts = async (
+export interface IProductService {
+  list (params: FindAllParams): Promise<ProductListResponse>;
+  getById (id: string): Promise<(Product & { category: Category | null }) | null>;
+  create (data: {name: string, description?: string, price: number, stock: number, categoryId?: number, image: string}): Promise<Product>;
+  update (id: string, data: Partial<Product>): Promise<Product>;
+  delete (id: string): Promise<Product>;
+}
+
+export class ProductService implements IProductService {
+  constructor (private productRepo: IProductRepository) {}
+
+  async list (
   params: FindAllParams
-): Promise<ProductListResponse> => {
+): Promise<ProductListResponse> {
   const { page, limit, search, sortBy, sortOrder } = params;
   const skip = (page - 1) * limit;
 
@@ -52,14 +63,14 @@ export const getAllProducts = async (
       }
     : { createdAt: "desc" };
 
-  const products = await productRepo.list(
+  const products = await this.productRepo.list(
     skip,
     limit,
     whereClause,
     sortCriteria
   );
 
-  const total = await productRepo.countAll(whereClause);
+  const total = await this.productRepo.countAll(whereClause);
 
   return {
     products,
@@ -69,10 +80,10 @@ export const getAllProducts = async (
   };
 };
 
-export const getProductById = async (id: string): Promise<Product> => {
+  async getById(id: string): Promise<(Product & { category: Category | null }) | null> {
   const numId = parseInt(id);
 
-  const product = await productRepo.findById(numId);
+  const product = await this.productRepo.findById(numId);
 
   if (!product) {
     throw new Error("Product tidak ditemukan");
@@ -81,30 +92,21 @@ export const getProductById = async (id: string): Promise<Product> => {
   return product;
 };
 
-export const createProduct = async (data: {
-  name: string;
-  description?: string;
-  price: number;
-  stock: number;
-  categoryId?: number;
-  image: string;
-}): Promise<Product> => {
-  return await productRepo.create(data);
+  async create(data: {name: string, description?: string, price: number, stock: number, categoryId?: number, image: string}): Promise<Product> {
+  return await this.productRepo.create(data);
 };
 
-export const updateProduct = async (
-  id: string,
-  data: Partial<Product>
-): Promise<Product> => {
-  await getProductById(id);
+  async update(id: string, data: Partial<Product>): Promise<Product> {
+  await this.getById(id);
 
   const numId = parseInt(id);
 
-  return await productRepo.update(numId, data);
+  return await this.productRepo.update(numId, data);
 };
 
-export const deleteProduct = async (id: string): Promise<Product> => {
+  async delete(id: string): Promise<Product> {
   const numId = parseInt(id);
 
-  return await productRepo.softDelete(numId);
+  return await this.productRepo.softDelete(numId);
 };
+}

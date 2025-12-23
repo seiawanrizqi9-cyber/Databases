@@ -1,5 +1,5 @@
 import type { OrderItem, Prisma } from "../generated/client";
-import * as orderItemsRepo from "../repository/orderItems.repository";
+import type { IOrderItemRepository } from "../repository/orderItems.repository";
 
 interface OrderItemsParams {
   page: number;
@@ -21,97 +21,105 @@ interface OrderItemListResponse {
   currentPage: number;
 }
 
-export const getAllOrderItems = async (
-  params: OrderItemsParams
-): Promise<OrderItemListResponse> => {
-  const { page, limit, search, sortBy, sortOrder } = params;
-  const skip = (page - 1) * limit;
+export interface IOrderItemService {
+  list(params: OrderItemsParams): Promise<OrderItemListResponse>;
+  getById(id: string): Promise<OrderItem>;
+  create(data: {
+    order_id: number;
+    product_id: number;
+    quantity: number;
+  }): Promise<OrderItem>;
+  update(id: string, data: Partial<OrderItem>): Promise<OrderItem>;
+  delete(id: string): Promise<OrderItem>;
+}
 
-  const whereClause: Prisma.OrderItemWhereInput = {};
+export class OrderItemService implements IOrderItemService {
+  constructor(private orderItemRepo: IOrderItemRepository) {}
 
-  if (search?.order_id) {
-    whereClause.order_id = search.order_id;
-  }
+  async list(params: OrderItemsParams): Promise<OrderItemListResponse> {
+    const { page, limit, search, sortBy, sortOrder } = params;
+    const skip = (page - 1) * limit;
 
-  if (search?.product_id) {
-    whereClause.product_id = search.product_id;
-  }
+    const whereClause: Prisma.OrderItemWhereInput = { deletedAt: null };
 
-  if (search?.min_quantity || search?.max_quantity) {
-    whereClause.quantity = {};
-    
-    if (search?.min_quantity) {
-      whereClause.quantity.gte = search.min_quantity;
+    if (search?.order_id) {
+      whereClause.order_id = search.order_id;
     }
-    
-    if (search?.max_quantity) {
-      whereClause.quantity.lte = search.max_quantity;
-    }
-  }
 
-  const sortCriteria: Prisma.OrderItemOrderByWithRelationInput = sortBy
-    ? {
-        [sortBy]: sortOrder || "desc",
+    if (search?.product_id) {
+      whereClause.product_id = search.product_id;
+    }
+
+    if (search?.min_quantity || search?.max_quantity) {
+      whereClause.quantity = {};
+      
+      if (search?.min_quantity) {
+        whereClause.quantity.gte = search.min_quantity;
       }
-    : { createdAt: "desc" };
+      
+      if (search?.max_quantity) {
+        whereClause.quantity.lte = search.max_quantity;
+      }
+    }
 
-  const orderItems = await orderItemsRepo.list(
-    skip,
-    limit,
-    whereClause,
-    sortCriteria
-  );
+    const sortCriteria: Prisma.OrderItemOrderByWithRelationInput = sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" };
 
-  const total = await orderItemsRepo.countAll(whereClause);
+    const orderItems = await this.orderItemRepo.list(
+      skip,
+      limit,
+      whereClause,
+      sortCriteria
+    );
 
-  return {
-    orderItems,
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page,
-  };
-};
+    const total = await this.orderItemRepo.countAll(whereClause);
 
-export const getOrderItemById = async (id: string): Promise<OrderItem> => {
-  const numId = parseInt(id);
-
-  const orderItem = await orderItemsRepo.findById(numId);
-
-  if (!orderItem) {
-    throw new Error("Order item tidak ditemukan");
+    return {
+      orderItems,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+    };
   }
 
-  return orderItem;
-};
+  async getById(id: string): Promise<OrderItem> {
+    const numId = parseInt(id);
+    const orderItem = await this.orderItemRepo.findById(numId);
 
+    if (!orderItem) {
+      throw new Error("Order item tidak ditemukan");
+    }
 
-export const createOrderItem = async (data: {
-  order_id: number;
-  product_id: number;
-  quantity: number;
-}): Promise<OrderItem> => {
-  const createData: Prisma.OrderItemCreateInput = {
-    order: { connect: { id: data.order_id } },  
-    product: { connect: { id: data.product_id } }, 
-    quantity: data.quantity,
-  };
+    return orderItem;
+  }
 
-  return await orderItemsRepo.create(createData);
-};
+  async create(data: {
+    order_id: number;
+    product_id: number;
+    quantity: number;
+  }): Promise<OrderItem> {
+    const createData: Prisma.OrderItemCreateInput = {
+      order: { connect: { id: data.order_id } },  
+      product: { connect: { id: data.product_id } }, 
+      quantity: data.quantity,
+    };
 
-export const updateOrderItem = async (
-  id: string,
-  data: Partial<OrderItem>
-): Promise<OrderItem> => {
-  await getOrderItemById(id);
+    return await this.orderItemRepo.create(createData);
+  }
 
-  const numId = parseInt(id);
+  async update(id: string, data: Partial<OrderItem>): Promise<OrderItem> {
+    // Periksa apakah order item ada
+    await this.getById(id);
+    
+    const numId = parseInt(id);
+    return await this.orderItemRepo.update(numId, data as Prisma.OrderItemUpdateInput);
+  }
 
-  return await orderItemsRepo.update(numId, data);
-};
-
-export const deleteOrderItem = async (id: string): Promise<OrderItem> => {
-  const numId = parseInt(id);
-
-  return await orderItemsRepo.softDelete(numId);
-};
+  async delete(id: string): Promise<OrderItem> {
+    const numId = parseInt(id);
+    return await this.orderItemRepo.softDelete(numId);
+  }
+}

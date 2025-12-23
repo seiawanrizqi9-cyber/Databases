@@ -6,4 +6,4 @@ model Category {
   updatedAt DateTime  @updatedAt
 
   @@map("categories")
-}
+} 

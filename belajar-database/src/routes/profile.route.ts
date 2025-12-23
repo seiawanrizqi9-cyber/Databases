@@ -1,41 +1,47 @@
 import { Router } from "express";
-import * as profileController from "../controllers/profile.controller";
+import { ProfileRepository } from "../repository/profile.repository";
 import { validate } from "../utils/validation";
+import { ProfileService } from "../services/profile.service";
+import { ProfileController } from "../controllers/profile.controller";
+import { authenticate } from "../middleware/auth.validation";
+import { upload } from "../middleware/upload.validation";
 import {
   createProfileValidation,
   updateProfileValidation,
   getProfileValidation,
   getUserProfileValidation,
 } from "../middleware/profile.validation";
-import { authenticate } from "../middleware/auth.validation";
-import { upload } from "../middleware/upload.validation";
+import prismaInstance from "../prisma";
 
 const router = Router();
 
-// Protected routes
+const repo = new ProfileRepository(prismaInstance);
+const service = new ProfileService(repo, prismaInstance);
+const controller = new ProfileController(service);
+
 router.post(
   "/",
   authenticate,
   upload.single("image"),
   validate(createProfileValidation),
-  profileController.create
+  controller.create
 );
-router.get("/my-profile", authenticate, profileController.getMyProfile);
+router.get("/my-profile", authenticate, controller.getMyProfile);
 router.get(
   "/user/:userId",
   validate(getUserProfileValidation),
-  profileController.getByUserId
+  controller.getByUserId
 );
-router.get("/:id", validate(getProfileValidation), profileController.getById);
+router.get("/:id", validate(getProfileValidation), controller.getById);
 router.put(
   "/:id",
   authenticate,
   validate(updateProfileValidation),
-  profileController.update
+  controller.update
 );
-router.delete("/:id", authenticate, profileController.remove);
+router.delete("/:id", authenticate, controller.delete);
 
 // Admin only routes
-router.get("/", authenticate, profileController.getAll);
+router.get("/", authenticate, controller.list);
 
 export default router;

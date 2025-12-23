@@ -1,19 +1,28 @@
-// order-item.routes.ts  
 import { Router } from "express";
-import * as orderItemController from "../controllers/orderItems.controller";
 import {
   createOrderItemValidation,
   getOrderItemByIdValidation,
   updateOrderItemValidation,
 } from "../middleware/orderItems.validation";
+import { OrderItemRepository } from "../repository/orderItems.repository";
 import { validate } from "../utils/validation";
+import { OrderItemService } from "../services/orderItems.service";
+import { OrderItemController } from "../controllers/orderItems.controller";
+import { authenticate } from "../middleware/auth.validation";
+import prismaInstance from "../prisma";
 
 const router = Router();
 
-router.get("/", orderItemController.getAll);
-router.get("/:id", validate(getOrderItemByIdValidation), orderItemController.getById);
-router.post("/", validate(createOrderItemValidation), orderItemController.create);
-router.put("/:id", validate(updateOrderItemValidation), orderItemController.update);
-router.delete("/:id", validate(getOrderItemByIdValidation), orderItemController.remove);
+// Dependency Injection
+const repo = new OrderItemRepository(prismaInstance);
+const service = new OrderItemService(repo);
+const controller = new OrderItemController(service);
+
+// Routes
+router.get("/", authenticate, controller.list);
+router.get("/:id", authenticate, validate(getOrderItemByIdValidation), controller.getById);
+router.post("/", authenticate, validate(createOrderItemValidation), controller.create);
+router.put("/:id", authenticate, validate(updateOrderItemValidation), controller.update);
+router.delete("/:id", authenticate, validate(getOrderItemByIdValidation), controller.delete);
 
 export default router;

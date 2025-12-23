@@ -1,15 +1,12 @@
-import type { Prisma, Order } from "../generated/client";
-import { getPrisma } from "../prisma";
-import * as orderRepo from "../repository/order.repository";
-
-const prisma = getPrisma();
+import type { Prisma, Order, PrismaClient } from "../generated/client";
+import type { IOrderRepository } from "../repository/order.repository";
 
 interface FindAllParams {
   page: number;
   limit: number;
   search?: {
-    min_total?: number;  
-    max_total?: number; 
+    min_total?: number;
+    max_total?: number;
   };
   sortBy?: string;
   sortOrder?: "asc" | "desc";
@@ -23,110 +20,161 @@ interface OrderListResponse {
   currentPage: number;
 }
 
-export const getAllOrders = async (
-  params: FindAllParams
-): Promise<OrderListResponse> => {
-  const { page, limit, search, sortBy, sortOrder, userId } = params;
-  const skip = (page - 1) * limit;
+// Interface untuk response detail order
+interface OrderDetailResponse {
+  id: number;
+  customer: string;
+  email: string;
+  total: number;
+  tanggal: Date;
+  items: Array<{
+    produk: string;
+    harga_satuan: number;
+    jumlah: number;
+  }>;
+}
 
-  const whereClause: Prisma.OrderWhereInput = {
-    deletedAt: null,
+// Interface untuk response checkout
+interface CheckoutResponse {
+  order_id: number;
+  user: {
+    id: number;
+    username: string;
+    email: string;
   };
+  total: number;
+  items: Array<{
+    product_id: number;
+    product_name: string;
+    price: number;
+    quantity: number;
+    subtotal: number;
+  }>;
+  total_items: number;
+  created_at: Date;
+}
 
-  if (userId) {
-    whereClause.user_id = userId;
-  }
+export interface IOrderService {
+  list(params: FindAllParams): Promise<OrderListResponse>;
+  findById(id: string): Promise<OrderDetailResponse>;
+  create(data: Prisma.OrderCreateInput): Promise<Order>;
+  update(id: string, data: Prisma.OrderUpdateInput): Promise<Order>;
+  delete(id: string): Promise<Order>;
+  checkout(data: {
+    orderItems: Array<{ product_id: number; quantity: number }>;
+    user_id: number;
+  }): Promise<CheckoutResponse>;
+}
 
-  if (search?.min_total || search?.max_total) {
-    whereClause.total = {};
-    
-    if (search?.min_total) {
-      whereClause.total.gte = search.min_total;
+export class OrderService implements IOrderService {
+  constructor(
+    private orderRepo: IOrderRepository,
+    private prisma: PrismaClient
+  ) {}
+
+  async list(params: FindAllParams): Promise<OrderListResponse> {
+    const { page, limit, search, sortBy, sortOrder, userId } = params;
+    const skip = (page - 1) * limit;
+
+    const whereClause: Prisma.OrderWhereInput = {
+      deletedAt: null,
+    };
+
+    if (userId) {
+      whereClause.user_id = userId;
     }
-    
-    if (search?.max_total) {
-      whereClause.total.lte = search.max_total;
-    }
-  }
 
-  const sortCriteria: Prisma.OrderOrderByWithRelationInput = sortBy
-    ? {
-        [sortBy]: sortOrder || "desc",
+    if (search?.min_total || search?.max_total) {
+      whereClause.total = {};
+
+      if (search?.min_total) {
+        whereClause.total.gte = search.min_total;
       }
-    : { createdAt: "desc" };
 
-  const orders = await orderRepo.list(
-    skip,
-    limit,
-    whereClause,
-    sortCriteria
-  );
+      if (search?.max_total) {
+        whereClause.total.lte = search.max_total;
+      }
+    }
 
-  const total = await orderRepo.countAll(whereClause);
+    const sortCriteria: Prisma.OrderOrderByWithRelationInput = sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" };
 
-  return {
-    orders,
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page,
-  };
-};
+    const orders = await this.orderRepo.list(
+      skip,
+      limit,
+      whereClause,
+      sortCriteria
+    );
 
-export const getOrderById = async (id: string) => {
-  const numId = parseInt(id);
+    const total = await this.orderRepo.countAll(whereClause);
 
-  const order = await orderRepo.findById(numId);
+    return {
+      orders,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+    };
+  }
 
-  if (!order) throw new Error("Order tidak ditemukan");
+  async findById(id: string): Promise<OrderDetailResponse> {
+    const numId = parseInt(id);
+    const order = await this.orderRepo.findById(numId);
 
-  return {
-    id: order.id,
-    customer: (order as any).user?.name || "Unknown",
-    email: (order as any).user?.email || "",
-    total: order.total,
-    tanggal: order.createdAt,
-    items: (order as any).orderItems.map((item: any) => ({
-      produk: item.product?.name || "Unknown",
-      harga_satuan: item.product?.price || 0,
-      jumlah: item.quantity,
-    })),
-  };
-};
+    if (!order) throw new Error("Order tidak ditemukan");
 
-export const createOrder = async (data: {
-  user_id: number;
-  total?: number;
-}): Promise<Order> => {
-  return await orderRepo.create({
-    user_id: data.user_id,
-    total: data.total || 0,
-  });
-};
+    // Type assertion untuk mengakses properti yang di-include
+    const orderWithIncludes = order as any;
 
-export const updateOrder = async (
-  id: string,
-  data: Partial<Order>
-): Promise<Order> => {
-  await getOrderById(id);
+    return {
+      id: order.id,
+      customer: orderWithIncludes.user?.username || "Unknown",
+      email: orderWithIncludes.user?.email || "",
+      total: Number(order.total),
+      tanggal: order.createdAt,
+      items: (orderWithIncludes.orderItems || []).map((item: any) => ({
+        produk: item.product?.name || "Unknown",
+        harga_satuan: Number(item.product?.price || 0),
+        jumlah: item.quantity,
+      })),
+    };
+  }
 
-  const numId = parseInt(id);
+  async create(data: Prisma.OrderCreateInput): Promise<Order> {
+    return await this.orderRepo.create({
+      user_id: data.user_id,
+      total: data.total || 0,
+    });
+  }
 
-  return await orderRepo.update(numId, data);
-};
+  async update(id: string, data: Prisma.OrderUpdateInput): Promise<Order> {
+    // Periksa apakah order ada
+    await this.findById(id);
+    
+    const numId = parseInt(id);
+    return await this.orderRepo.update(numId, data);
+  }
 
-export const checkout = async (data: {
+  async delete(id: string): Promise<Order> {
+    const numId = parseInt(id);
+    return await this.orderRepo.softDelete(numId);
+  }
+
+  async checkout(data: {
   orderItems: Array<{ product_id: number; quantity: number }>;
-  user_id: number; 
-}) => {
+  user_id: number;
+}): Promise<CheckoutResponse> {
   if (!data.user_id) {
     throw new Error("User ID diperlukan");
   }
 
   let total = 0;
-  const orderItemsData = [];
 
+  // Validasi stok dan hitung total
   for (const item of data.orderItems) {
-    const product = await prisma.product.findUnique({
+    const product = await this.prisma.product.findUnique({
       where: { id: item.product_id },
     });
 
@@ -139,28 +187,29 @@ export const checkout = async (data: {
     }
 
     total += Number(product.price) * item.quantity;
-    orderItemsData.push({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      product_name: product.name,
-      product_price: Number(product.price),
-      subtotal: Number(product.price) * item.quantity,
-    });
   }
 
-  return await prisma.$transaction(async (tx) => {
+  // Gunakan transaction
+  const result = await this.prisma.$transaction(async (tx) => {
+    // Buat order - HANYA ambil user_id, tidak include user
     const order = await tx.order.create({
       data: {
         user_id: data.user_id,
         total,
       },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
     });
 
+    // Ambil data user terpisah untuk response
+    const user = await tx.user.findUnique({
+      where: { id: data.user_id },
+      select: { id: true, username: true, email: true },
+    });
+
+    if (!user) {
+      throw new Error("User tidak ditemukan");
+    }
+
+    // Buat order items dan update stok
     const orderItems = [];
     for (const item of data.orderItems) {
       const orderItem = await tx.orderItem.create({
@@ -186,12 +235,12 @@ export const checkout = async (data: {
 
     return {
       order_id: order.id,
-      user: order.user,
-      total: order.total,
+      user, // user adalah object tunggal, bukan array
+      total: Number(order.total),
       items: orderItems.map((item) => ({
         product_id: item.product_id,
         product_name: item.product.name,
-        price: item.product.price,
+        price: Number(item.product.price),
         quantity: item.quantity,
         subtotal: Number(item.product.price) * item.quantity,
       })),
@@ -199,10 +248,7 @@ export const checkout = async (data: {
       created_at: order.createdAt,
     };
   });
-};
 
-export const deleteOrder = async (id: string): Promise<Order> => {
-  const numId = parseInt(id);
-
-  return await orderRepo.softDelete(numId);
-};
+  return result;
+}
+}

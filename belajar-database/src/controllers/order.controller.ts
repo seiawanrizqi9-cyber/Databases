@@ -1,105 +1,147 @@
 import type { Request, Response } from "express";
 import { successResponse, errorResponse } from "../utils/response";
-import {
-  createOrder,
-  deleteOrder,
-  getAllOrders,
-  getOrderById,
-  updateOrder,
-  checkout as checkoutOrder,
-} from "../services/order.service";
+import type { IOrderService } from "../services/order.service";
 
-export interface orderRequest extends Request {
-  user_id: number;
-  total: number;
-  orderItems: orderItem[];
+export interface IOrderController {
+  list: (req: Request, res: Response) => Promise<void>;
+  getById: (req: Request, res: Response) => Promise<void>;
+  create: (req: Request, res: Response) => Promise<void>;
+  update: (req: Request, res: Response) => Promise<void>;
+  delete: (req: Request, res: Response) => Promise<void>;
+  checkout: (req: Request, res: Response) => Promise<void>;
 }
 
-export interface orderItem {
-  product_id: number;
-  quantity: number;
-}
+export class OrderController implements IOrderController {
+  constructor(private orderService: IOrderService) {}
 
-export const getAll = async (req: Request, res: Response) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
-  const search = req.query.search as any;
-  const sortBy = req.query.sortBy as string;
-  const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
+  async list(req: Request, res: Response): Promise<void> {
+    try {
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const search = req.query.search as any;
+      const sortBy = req.query.sortBy as string;
+      const sortOrder = (req.query.sortOrder as "asc" | "desc") || "desc";
 
-  let userId: number | undefined;
+      let userId: number | undefined;
 
-  if (req.user) {
-    if (req.user.role !== "ADMIN") {
-      userId = req.user.id; 
+      // Cek role user untuk filter
+      if (req.user && req.user.role !== "ADMIN") {
+        userId = req.user.id;
+      }
+
+      const result = await this.orderService.list({
+        page,
+        limit,
+        search,
+        sortBy,
+        sortOrder,
+        userId,
+      });
+
+      const pagination = {
+        page: result.currentPage,
+        limit,
+        total: result.total,
+        totalPages: result.totalPages,
+      };
+
+      successResponse(res, "Order berhasil diambil", result.orders, pagination);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Terjadi kesalahan", 500);
     }
   }
 
-  const result = await getAllOrders({
-    page,
-    limit,
-    search,
-    sortBy,
-    sortOrder,
-    userId,
-  });
+  async getById(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        throw new Error("Parameter ID tidak ditemukan");
+      }
 
-  const pagination = {
-    page: result.currentPage,
-    limit,
-    total: result.total,
-    totalPages: result.totalPages,
-  };
-
-  successResponse(res, "Order berhasil diambil", result.orders, pagination);
-};
-
-export const getById = async (req: Request, res: Response) => {
-  const order = await getOrderById(req.params.id!);
-
-  successResponse(res, "Order berhasil diambil", order);
-};
-
-export const create = async (req: Request, res: Response) => {
-  const { user_id, total } = req.body;
-  const data = {
-    userId: Number(user_id),
-    ...(total && { total: Number(total) }),
-  };
-
-  const order = await createOrder(data);
-
-  successResponse(res, "Order berhasil dibuat", order, null, 201);
-};
-
-export const update = async (req: Request, res: Response) => {
-  const order = await updateOrder(req.params.id!, req.body);
-
-  successResponse(res, "Order berhasil diupdate", order);
-};
-
-export const remove = async (req: Request, res: Response) => {
-  const deleted = await deleteOrder(req.params.id!);
-
-  successResponse(res, "Order berhasil dihapus", deleted);
-};
-
-export const checkout = async (req: Request, res: Response) => {
-  try {
-    const user_id = req.user?.id;
-
-    if (!user_id) {
-      return errorResponse(res, "Unauthorized", 401);
+      const order = await this.orderService.findById(req.params.id);
+      successResponse(res, "Order berhasil diambil", order);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Order tidak ditemukan", 404);
     }
-
-    const data = {
-      user_id,
-      orderItems: req.body.orderItems,
-    };
-
-    const result = await checkoutOrder(data);
-    successResponse(res, "Checkout berhasil", result, null, 201);
-  } catch (error: any) {
-    errorResponse(res, error.message || "Terjadi kesalahan", 400);
   }
-};
+
+  async create(req: Request, res: Response): Promise<void> {
+    try {
+      const { user_id, total } = req.body;
+      
+      if (!user_id) {
+        throw new Error("User ID wajib diisi");
+      }
+
+      const data = {
+        user_id: Number(user_id),
+        total: total ? Number(total) : 0,
+      };
+
+      const order = await this.orderService.create(data);
+      successResponse(res, "Order berhasil dibuat", order, null, 201);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Gagal membuat order", 400);
+    }
+  }
+
+  async update(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        throw new Error("Parameter ID tidak ditemukan");
+      }
+
+      const order = await this.orderService.update(req.params.id, req.body);
+      successResponse(res, "Order berhasil diupdate", order);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Gagal mengupdate order", 400);
+    }
+  }
+
+  async delete(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.params.id) {
+        throw new Error("Parameter ID tidak ditemukan");
+      }
+
+      const deleted = await this.orderService.delete(req.params.id);
+      successResponse(res, "Order berhasil dihapus", deleted);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Gagal menghapus order", 400);
+    }
+  }
+
+  async checkout(req: Request, res: Response): Promise<void> {
+    try {
+      const user_id = req.user?.id;
+
+      if (!user_id) {
+        throw new Error("Unauthorized - User tidak ditemukan");
+      }
+
+      if (!req.body.orderItems || !Array.isArray(req.body.orderItems) || req.body.orderItems.length === 0) {
+        throw new Error("Order items wajib diisi");
+      }
+
+      // Validasi setiap order item
+      const orderItems = req.body.orderItems.map((item: any) => {
+        if (!item.product_id || !item.quantity) {
+          throw new Error("Setiap order item harus memiliki product_id dan quantity");
+        }
+        return {
+          product_id: Number(item.product_id),
+          quantity: Number(item.quantity),
+        };
+      });
+
+      const data = {
+        user_id,
+        orderItems,
+      };
+
+      const result = await this.orderService.checkout(data);
+      successResponse(res, "Checkout berhasil", result, null, 201);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Checkout gagal", 400);
+    }
+  }
+}

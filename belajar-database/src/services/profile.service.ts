@@ -1,8 +1,5 @@
-import type { Prisma, Profile } from "../generated/client";
-import * as profileRepo from "../repository/profile.repository";
-import { getPrisma } from "../prisma";
-
-const prisma = getPrisma();
+import type { Prisma, Profile, PrismaClient } from "../generated/client";
+import type { IProfileRepository } from "../repository/profile.repository";
 
 export interface CreateProfileData {
   user_id: number;
@@ -38,134 +35,145 @@ interface ProfileListResponse {
   currentPage: number;
 }
 
-export const createProfile = async (data: CreateProfileData): Promise<Profile> => {
-  const existingProfile = await profileRepo.findByUserId(data.user_id);
-  if (existingProfile) {
-    throw new Error('User sudah memiliki profile');
+export interface IProfileService {
+  list(params: ProfilesParams): Promise<ProfileListResponse>;
+  getByUserId(userId: number): Promise<Profile>;
+  getById(profileId: number): Promise<Profile>;
+  create(data: CreateProfileData): Promise<Profile>;
+  update(profileId: number, data: UpdateProfileData): Promise<Profile>;
+  delete(profileId: number): Promise<Profile>;
+}
+
+export class ProfileService implements IProfileService {
+  constructor(
+    private profileRepo: IProfileRepository,
+    private prisma: PrismaClient
+  ) {}
+
+  async create(data: CreateProfileData): Promise<Profile> {
+    const existingProfile = await this.profileRepo.findByUserId(data.user_id);
+    if (existingProfile) {
+      throw new Error("User sudah memiliki profile");
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: data.user_id, deletedAt: null },
+    });
+
+    if (!user) {
+      throw new Error("User tidak ditemukan");
+    }
+
+    const createData: Prisma.ProfileCreateInput = {
+      user: { connect: { id: data.user_id } },
+      name: data.name,
+      gender: data.gender ? data.gender.toUpperCase() : null,
+      address: data.address || null,
+      profile_picture_url: data.profile_picture_url || null,
+    };
+
+    return await this.profileRepo.create(createData);
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: data.user_id, deletedAt: null }
-  });
-  
-  if (!user) {
-    throw new Error('User tidak ditemukan');
+  async getByUserId(userId: number): Promise<Profile> {
+    const profile = await this.profileRepo.findByUserId(userId);
+    if (!profile) {
+      throw new Error("Profile tidak ditemukan");
+    }
+    return profile;
   }
 
-  const createData: Prisma.ProfileCreateInput = {
-    user: { connect: { id: data.user_id } },
-    name: data.name,
-    gender: data.gender ? data.gender.toUpperCase() : null,
-    address: data.address || null,
-    profile_picture_url: data.profile_picture_url || null
-  };
-
-  return await profileRepo.create(createData);
-};
-
-export const getProfileByUserId = async (userId: number): Promise<Profile> => {
-  const profile = await profileRepo.findByUserId(userId);
-  if (!profile) {
-    throw new Error('Profile tidak ditemukan');
-  }
-  return profile;
-};
-
-export const getProfileById = async (profileId: number): Promise<Profile> => {
-  const profile = await profileRepo.findById(profileId);
-  if (!profile) {
-    throw new Error('Profile tidak ditemukan');
-  }
-  return profile;
-};
-
-export const updateProfile = async (
-  profileId: number, 
-  data: UpdateProfileData
-): Promise<Profile> => {
-  const profile = await profileRepo.findById(profileId);
-  if (!profile) {
-    throw new Error('Profile tidak ditemukan');
+  async getById(profileId: number): Promise<Profile> {
+    const profile = await this.profileRepo.findById(profileId);
+    if (!profile) {
+      throw new Error("Profile tidak ditemukan");
+    }
+    return profile;
   }
 
-  const updateData: Prisma.ProfileUpdateInput = {
-    updatedAt: new Date()
-  };
+  async update(profileId: number, data: UpdateProfileData): Promise<Profile> {
+    const profile = await this.profileRepo.findById(profileId);
+    if (!profile) {
+      throw new Error("Profile tidak ditemukan");
+    }
 
-  if (data.name !== undefined) {
-    updateData.name = data.name;
+    const updateData: Prisma.ProfileUpdateInput = {
+      updatedAt: new Date(),
+    };
+
+    if (data.name !== undefined) {
+      updateData.name = data.name;
+    }
+
+    if (data.gender !== undefined) {
+      updateData.gender = data.gender ? data.gender.toUpperCase() : null;
+    }
+
+    if (data.address !== undefined) {
+      updateData.address = data.address || null;
+    }
+
+    if (data.profile_picture_url !== undefined) {
+      updateData.profile_picture_url = data.profile_picture_url || null;
+    }
+
+    return await this.profileRepo.update(profileId, updateData);
   }
-  
-  if (data.gender !== undefined) {
-    updateData.gender = data.gender ? data.gender.toUpperCase() : null;
-  }
-  
-  if (data.address !== undefined) {
-    updateData.address = data.address || null;
-  }
-  
-  if (data.profile_picture_url !== undefined) {
-    updateData.profile_picture_url = data.profile_picture_url || null;
+
+  async delete(profileId: number): Promise<Profile> {
+    const profile = await this.profileRepo.findById(profileId);
+    if (!profile) {
+      throw new Error("Profile tidak ditemukan");
+    }
+    return await this.profileRepo.softDelete(profileId);
   }
 
-  return await profileRepo.update(profileId, updateData);
-};
+  async list(params: ProfilesParams): Promise<ProfileListResponse> {
+    const { page, limit, search, sortBy, sortOrder } = params;
+    const skip = (page - 1) * limit;
 
-export const deleteProfile = async (profileId: number): Promise<Profile> => {
-  const profile = await profileRepo.findById(profileId);
-  if (!profile) {
-    throw new Error('Profile tidak ditemukan');
-  }
-  return await profileRepo.softDelete(profileId);
-};
+    const whereClause: Prisma.ProfileWhereInput = {
+      deletedAt: null,
+    };
 
-export const getAllProfiles = async (
-  params: ProfilesParams
-): Promise<ProfileListResponse> => {
-  const { page, limit, search, sortBy, sortOrder } = params;
-  const skip = (page - 1) * limit;
+    if (search?.name) {
+      whereClause.name = {
+        contains: search.name,
+        mode: "insensitive",
+      };
+    }
 
-  const whereClause: Prisma.ProfileWhereInput = {
-    deletedAt: null,
-  };
+    if (search?.gender) {
+      whereClause.gender = search.gender.toUpperCase();
+    }
 
-  if (search?.name) {
-    whereClause.name = {
-      contains: search.name,
-      mode: "insensitive",
+    if (search?.address) {
+      whereClause.address = {
+        contains: search.address,
+        mode: "insensitive",
+      };
+    }
+
+    const sortCriteria: Prisma.ProfileOrderByWithRelationInput = sortBy
+      ? {
+          [sortBy]: sortOrder || "desc",
+        }
+      : { createdAt: "desc" };
+
+    const profiles = await this.profileRepo.list(
+      skip,
+      limit,
+      whereClause,
+      sortCriteria
+    );
+
+    const total = await this.profileRepo.countAll(whereClause);
+
+    return {
+      profiles,
+      total,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
     };
   }
-
-  if (search?.gender) {
-    whereClause.gender = search.gender.toUpperCase();
-  }
-
-  if (search?.address) {
-    whereClause.address = {
-      contains: search.address,
-      mode: "insensitive",
-    };
-  }
-
-  const sortCriteria: Prisma.ProfileOrderByWithRelationInput = sortBy
-    ? {
-        [sortBy]: sortOrder || "desc",
-      }
-    : { createdAt: "desc" };
-
-  const profiles = await profileRepo.list(
-    skip,
-    limit,
-    whereClause,
-    sortCriteria
-  );
-
-  const total = await profileRepo.countAll(whereClause);
-
-  return {
-    profiles,
-    total,
-    totalPages: Math.ceil(total / limit),
-    currentPage: page,
-  };
-};
+}
