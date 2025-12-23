@@ -26,6 +26,7 @@ router.post(
   validate(createProfileValidation),
   controller.create
 );
+router.get("/", controller.list);
 router.get("/my-profile", authenticate, controller.getMyProfile);
 router.get(
   "/user/:userId",

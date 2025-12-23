@@ -13,6 +13,15 @@ export interface IProfileRepository {
   create: (data: Prisma.ProfileCreateInput) => Promise<Profile>;
   update: (id: number, data: Prisma.ProfileUpdateInput) => Promise<Profile>;
   softDelete: (id: number) => Promise<Profile>;
+  findComplex: (name: string, user_id: number) => Promise<Profile[]>;
+  getStats(): Promise<Prisma.GetProfileAggregateType<{ _count: { id: true } }>>;
+  getProfileByCategoryStats(): Promise<
+    (Prisma.PickEnumerable<Prisma.ProfileGroupByOutputType, "id"[]> & {
+      _count: {
+        id: number;
+      };
+    })[]
+  >;
 }
 
 export class ProfileRepository implements IProfileRepository {
@@ -116,6 +125,31 @@ export class ProfileRepository implements IProfileRepository {
     return await this.prisma.profile.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  async findComplex(name: string, user_id: number) {
+    return await this.prisma.profile.findMany({
+      where: {
+        OR: [{ name: { contains: name } }, { user: { id: user_id } }],
+      },
+    });
+  }
+
+  async getStats() {
+    return await this.prisma.profile.aggregate({
+      _count: {
+        id: true,
+      },
+    });
+  }
+
+  async getProfileByCategoryStats() {
+    return await this.prisma.profile.groupBy({
+      by: ["id"],
+      _count: {
+        id: true,
+      },
     });
   }
 }

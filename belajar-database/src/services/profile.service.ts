@@ -42,6 +42,7 @@ export interface IProfileService {
   create(data: CreateProfileData): Promise<Profile>;
   update(profileId: number, data: UpdateProfileData): Promise<Profile>;
   delete(profileId: number): Promise<Profile>;
+  exec(): Promise<{ overview: any; byCategory: any }>;
 }
 
 export class ProfileService implements IProfileService {
@@ -175,5 +176,12 @@ export class ProfileService implements IProfileService {
       totalPages: Math.ceil(total / limit),
       currentPage: page,
     };
+  }
+
+  async exec() {
+    const state = await this.profileRepo.getStats();
+    const category = await this.profileRepo.getProfileByCategoryStats();
+
+    return { overview: state, byCategory: category };
   }
 }

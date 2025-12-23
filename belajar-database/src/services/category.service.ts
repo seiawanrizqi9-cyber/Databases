@@ -24,6 +24,7 @@ export interface ICategoryService {
   create(name: string): Promise<Category>;
   update(id: string, name: string): Promise<Category>;
   delete(id: string): Promise<Category>;
+  exec(): Promise<{ overview: any }>
 }
 
 export class CategoryService implements ICategoryService {
@@ -86,4 +87,9 @@ async delete (id: string): Promise<Category>{
   const numId = parseInt(id);
   return await this.categoryRepo.delete(numId);
 };
+
+async exec() {
+  const state = await this.categoryRepo.getStats();
+  return { overview: state };
+}
 }

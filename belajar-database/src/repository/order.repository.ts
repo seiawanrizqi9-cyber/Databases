@@ -12,6 +12,9 @@ export interface IOrderRepository {
   ): Promise<Order[]>;
   countAll(where: Prisma.OrderWhereInput): Promise<number>;
   findById(id: number): Promise<Order | null>;
+  findComplex(id: number, user_id: number): Promise<Order[]>;
+  getStats(): Promise<Prisma.GetOrderAggregateType<{ _count: { id: true } }>>;
+  getStatsByUser(user_id: number): Promise<Prisma.GetOrderAggregateType<{}>>;
 }
 
 export class OrderRepository implements IOrderRepository {
@@ -83,6 +86,55 @@ export class OrderRepository implements IOrderRepository {
     return await this.prisma.order.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  async findComplex(id: number, user_id: number) {
+    return await this.prisma.order.findMany({
+      where: {
+        OR: [{ id }, { user_id }],
+      },
+    });
+  }
+
+  async getStats() {
+    return await this.prisma.order.aggregate({
+      _count: {
+        id: true,
+      },
+      _avg: {
+        total: true,
+      },
+      _sum: {
+        total: true,
+      },
+      _min: {
+        total: true,
+      },
+      _max: {
+        total: true,
+      },
+    });
+  }
+
+  async getStatsByUser(user_id: number) {
+    return await this.prisma.order.aggregate({
+      where: { user_id },
+      _count: {
+        id: true,
+      },
+      _avg: {
+        total: true,
+      },
+      _sum: {
+        total: true,
+      },
+      _min: {
+        total: true,
+      },
+      _max: {
+        total: true,
+      },
     });
   }
 }

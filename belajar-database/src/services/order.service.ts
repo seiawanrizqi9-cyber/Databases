@@ -152,7 +152,7 @@ export class OrderService implements IOrderService {
   async update(id: string, data: Prisma.OrderUpdateInput): Promise<Order> {
     // Periksa apakah order ada
     await this.findById(id);
-    
+
     const numId = parseInt(id);
     return await this.orderRepo.update(numId, data);
   }
@@ -163,92 +163,99 @@ export class OrderService implements IOrderService {
   }
 
   async checkout(data: {
-  orderItems: Array<{ product_id: number; quantity: number }>;
-  user_id: number;
-}): Promise<CheckoutResponse> {
-  if (!data.user_id) {
-    throw new Error("User ID diperlukan");
-  }
-
-  let total = 0;
-
-  // Validasi stok dan hitung total
-  for (const item of data.orderItems) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: item.product_id },
-    });
-
-    if (!product)
-      throw new Error(`Produk ID ${item.product_id} tidak ditemukan`);
-    if (product.stock < item.quantity) {
-      throw new Error(
-        `Stok "${product.name}" tidak cukup. Tersedia: ${product.stock}`
-      );
+    orderItems: Array<{ product_id: number; quantity: number }>;
+    user_id: number;
+  }): Promise<CheckoutResponse> {
+    if (!data.user_id) {
+      throw new Error("User ID diperlukan");
     }
 
-    total += Number(product.price) * item.quantity;
-  }
+    let total = 0;
 
-  // Gunakan transaction
-  const result = await this.prisma.$transaction(async (tx) => {
-    // Buat order - HANYA ambil user_id, tidak include user
-    const order = await tx.order.create({
-      data: {
-        user_id: data.user_id,
-        total,
-      },
-    });
-
-    // Ambil data user terpisah untuk response
-    const user = await tx.user.findUnique({
-      where: { id: data.user_id },
-      select: { id: true, username: true, email: true },
-    });
-
-    if (!user) {
-      throw new Error("User tidak ditemukan");
-    }
-
-    // Buat order items dan update stok
-    const orderItems = [];
+    // Validasi stok dan hitung total
     for (const item of data.orderItems) {
-      const orderItem = await tx.orderItem.create({
-        data: {
-          order_id: order.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-        },
-        include: {
-          product: {
-            select: { id: true, name: true, price: true },
-          },
-        },
-      });
-
-      await tx.product.update({
+      const product = await this.prisma.product.findUnique({
         where: { id: item.product_id },
-        data: { stock: { decrement: item.quantity } },
       });
 
-      orderItems.push(orderItem);
+      if (!product)
+        throw new Error(`Produk ID ${item.product_id} tidak ditemukan`);
+      if (product.stock < item.quantity) {
+        throw new Error(
+          `Stok "${product.name}" tidak cukup. Tersedia: ${product.stock}`
+        );
+      }
+
+      total += Number(product.price) * item.quantity;
     }
 
-    return {
-      order_id: order.id,
-      user, // user adalah object tunggal, bukan array
-      total: Number(order.total),
-      items: orderItems.map((item) => ({
-        product_id: item.product_id,
-        product_name: item.product.name,
-        price: Number(item.product.price),
-        quantity: item.quantity,
-        subtotal: Number(item.product.price) * item.quantity,
-      })),
-      total_items: orderItems.length,
-      created_at: order.createdAt,
-    };
-  });
+    // Gunakan transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Buat order - HANYA ambil user_id, tidak include user
+      const order = await tx.order.create({
+        data: {
+          user_id: data.user_id,
+          total,
+        },
+      });
 
-  return result;
-}
+      // Ambil data user terpisah untuk response
+      const user = await tx.user.findUnique({
+        where: { id: data.user_id },
+        select: { id: true, username: true, email: true },
+      });
+
+      if (!user) {
+        throw new Error("User tidak ditemukan");
+      }
+
+      // Buat order items dan update stok
+      const orderItems = [];
+      for (const item of data.orderItems) {
+        const orderItem = await tx.orderItem.create({
+          data: {
+            order_id: order.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+          },
+          include: {
+            product: {
+              select: { id: true, name: true, price: true },
+            },
+          },
+        });
+
+        await tx.product.update({
+          where: { id: item.product_id },
+          data: { stock: { decrement: item.quantity } },
+        });
+
+        orderItems.push(orderItem);
+      }
+
+      return {
+        order_id: order.id,
+        user, // user adalah object tunggal, bukan array
+        total: Number(order.total),
+        items: orderItems.map((item) => ({
+          product_id: item.product_id,
+          product_name: item.product.name,
+          price: Number(item.product.price),
+          quantity: item.quantity,
+          subtotal: Number(item.product.price) * item.quantity,
+        })),
+        total_items: orderItems.length,
+        created_at: order.createdAt,
+      };
+    });
+
+    return result;
+  }
+
+  async exec() {
+    const state = await this.orderRepo.getStats();
+    const category = await this.orderRepo.getStatsByUser(user_id);
+
+    return { overview: state, byCategory: category };
+  }
 }

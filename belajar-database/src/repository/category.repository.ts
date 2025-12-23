@@ -13,6 +13,14 @@ export interface ICategoryRepository {
   create(data: Prisma.CategoryCreateInput): Promise<Category>;
   update(id: number, data: Prisma.CategoryUpdateInput): Promise<Category>;
   delete(id: number): Promise<Category>;
+  findComplex(categoryName: string, maxPrice: number): Promise<any>;
+  getStats(): Promise<
+    Prisma.GetCategoryAggregateType<{
+      _count: {
+        id: true;
+      };
+    }>
+  >;
 }
 
 export class CategoryRepository implements ICategoryRepository {
@@ -65,6 +73,32 @@ export class CategoryRepository implements ICategoryRepository {
   async delete(id: number): Promise<Category> {
     return await this.prisma.category.delete({
       where: { id },
+    });
+  }
+
+  async findComplex(categoryName: string, maxPrice: number) {
+    return await this.prisma.product.findMany({
+      where: {
+        OR: [
+          {
+            category: {
+              name: categoryName,
+            },
+          },
+          { category: { name: "Aksesoris" } },
+        ],
+        price: {
+          lte: maxPrice,
+        },
+      },
+    });
+  }
+
+  async getStats() {
+    return await this.prisma.category.aggregate({
+      _count: {
+        id: true,
+      },
     });
   }
 }

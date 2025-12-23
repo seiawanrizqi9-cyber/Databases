@@ -13,7 +13,16 @@ export interface IProfileController {
 }
 
 export class ProfileController implements IProfileController {
-  constructor(private profileService: IProfileService) {}
+  constructor(private profileService: IProfileService) {
+    this.create = this.create.bind(this);
+    this.getByUserId = this.getByUserId.bind(this);
+    this.list = this.list.bind(this);
+    this.getMyProfile = this.getMyProfile.bind(this);
+    this.getById = this.getById.bind(this);
+    this.update = this.update.bind(this);
+    this.delete = this.delete.bind(this);
+    this.getStats = this.getStats.bind(this);
+  }
 
   async create(req: Request, res: Response): Promise<void> {
     try {
@@ -139,5 +148,11 @@ export class ProfileController implements IProfileController {
     } catch (error: any) {
       errorResponse(res, error.message, 500);
     }
+  }
+
+  async getStats(_req: Request, res: Response) {
+    const stats = await this.profileService.exec();
+
+    successResponse(res, "Profile berhasil diambil", stats, null, 200);
   }
 }

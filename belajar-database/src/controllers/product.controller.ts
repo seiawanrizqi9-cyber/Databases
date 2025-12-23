@@ -8,10 +8,18 @@ export interface IProductController {
   create: (req: Request, res: Response) => Promise<void>;
   update: (req: Request, res: Response) => Promise<void>;
   delete: (req: Request, res: Response) => Promise<void>;
+  getStats: (req: Request, res: Response) => Promise<void>;
 }
 
 export class ProductController implements IProductController {
-  constructor(private productService: IProductService) {}
+  constructor(private productService: IProductService) {
+    this.list = this.list.bind(this);
+    this.getById = this.getById.bind(this);
+    this.create = this.create.bind(this);
+    this.update = this.update.bind(this);
+    this.delete = this.delete.bind(this);
+    this.getStats = this.getStats.bind(this);
+  }
 
 async list(req: Request, res: Response) {
   const page = Number(req.query.page) || 1;
@@ -81,4 +89,10 @@ async delete (req: Request, res: Response)  {
 
   successResponse(res, "Produk berhasil dihapus", deleted);
 };
+
+async getStats(_req: Request, res: Response) {
+  const stats = await this.productService.exec();
+
+  successResponse(res, "Produk berhasil diambil", stats, null, 200);
+}
 }

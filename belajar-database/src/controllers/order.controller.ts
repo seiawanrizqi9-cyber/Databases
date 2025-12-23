@@ -144,4 +144,13 @@ export class OrderController implements IOrderController {
       errorResponse(res, error.message || "Checkout gagal", 400);
     }
   }
+
+  async getStats(req: Request, res: Response): Promise<void> {
+    try {
+      const stats = await this.orderService.getStats();
+      successResponse(res, "Statistik berhasil diambil", stats, null, 200);
+    } catch (error: any) {
+      errorResponse(res, error.message || "Terjadi kesalahan", 500);
+    }
+  }
 }

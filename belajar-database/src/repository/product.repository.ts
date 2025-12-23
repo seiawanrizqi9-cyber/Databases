@@ -4,6 +4,13 @@ import type {
   PrismaClient,
   Product,
 } from "../generated/client";
+import type { Decimal } from "../generated/internal/prismaNamespace";
+
+export interface CategoryStats {
+  categoryId: number;
+  productCount: number;
+  averagePrice: Decimal | number;
+}
 
 export interface IProductRepository {
   list(
@@ -19,6 +26,34 @@ export interface IProductRepository {
   create(data: Prisma.ProductCreateInput): Promise<Product>;
   update(id: number, data: Prisma.ProductUpdateInput): Promise<Product>;
   softDelete(id: number): Promise<Product>;
+  findComplex(categoryName: string, maxPrice: number): Promise<Product[]>;
+  getStats(): Promise<
+    Prisma.GetProductAggregateType<{
+      _count: {
+        id: true;
+      };
+      _avg: {
+        price: true;
+      };
+      _sum: {
+        price: true;
+      };
+      _min: {
+        price: true;
+      };
+      _max: {
+        price: true;
+      };
+    }>
+  >;
+  getProductsByCategoryStats(): Promise<(Prisma.PickEnumerable<Prisma.ProductGroupByOutputType, "categoryId"[]> & {
+        _avg: {
+            price: Decimal | null;
+        };
+        _count: {
+            id: number;
+        };
+    })[]>
 }
 
 export class ProductRepository implements IProductRepository {
@@ -79,6 +114,62 @@ export class ProductRepository implements IProductRepository {
       },
       data: {
         deletedAt: new Date(),
+      },
+    });
+  }
+
+  async findComplex(categoryName: string, maxPrice: number) {
+    return await this.prisma.product.findMany({
+      where: {
+        OR: [
+          {
+            AND: [
+              {
+                category: {
+                  name: categoryName,
+                },
+              },
+              {
+                price: {
+                  lte: maxPrice,
+                },
+              },
+            ],
+          },
+          { category: { name: "Aksesoris" } },
+        ],
+      },
+    });
+  }
+
+  async getStats() {
+    return await this.prisma.product.aggregate({
+      _count: {
+        id: true,
+      },
+      _avg: {
+        price: true,
+      },
+      _sum: {
+        price: true,
+      },
+      _min: {
+        price: true,
+      },
+      _max: {
+        price: true,
+      },
+    });
+  }
+
+  async getProductsByCategoryStats() {
+    return await this.prisma.product.groupBy({
+      by: ["categoryId"],
+      _count: {
+        id: true,
+      },
+      _avg: {
+        price: true,
       },
     });
   }
