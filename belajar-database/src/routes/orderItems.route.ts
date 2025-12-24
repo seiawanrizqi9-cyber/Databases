@@ -20,6 +20,7 @@ const controller = new OrderItemController(service);
 
 // Routes
 router.get("/", authenticate, controller.list);
+router.get("/stats", authenticate, controller.getStats);
 router.get("/:id", authenticate, validate(getOrderItemByIdValidation), controller.getById);
 router.post("/", authenticate, validate(createOrderItemValidation), controller.create);
 router.put("/:id", authenticate, validate(updateOrderItemValidation), controller.update);

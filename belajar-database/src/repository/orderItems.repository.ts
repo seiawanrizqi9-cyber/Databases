@@ -12,6 +12,17 @@ export interface IOrderItemRepository {
   create(data: Prisma.OrderItemCreateInput): Promise<OrderItem>;
   update(id: number, data: Prisma.OrderItemUpdateInput): Promise<OrderItem>;
   softDelete(id: number): Promise<OrderItem>;
+  findComplex(id: number, user_id: number): Promise<OrderItem[]>;
+  getStats(): Promise<
+    Prisma.GetOrderItemAggregateType<{ _count: { id: true } }>
+  >;
+  getOrderItemsByOrder(): Promise<
+    (Prisma.PickEnumerable<Prisma.OrderItemGroupByOutputType, "id"[]> & {
+      _count: {
+        id: number;
+      };
+    })[]
+  >;
 }
 
 export class OrderItemRepository implements IOrderItemRepository {
@@ -36,18 +47,18 @@ export class OrderItemRepository implements IOrderItemRepository {
             user: {
               select: {
                 username: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         },
         product: {
           select: {
             name: true,
             price: true,
-            image: true
-          }
-        }
+            image: true,
+          },
+        },
       },
     });
   }
@@ -67,10 +78,13 @@ export class OrderItemRepository implements IOrderItemRepository {
     return await this.prisma.orderItem.create({ data });
   }
 
-  async update(id: number, data: Prisma.OrderItemUpdateInput): Promise<OrderItem> {
+  async update(
+    id: number,
+    data: Prisma.OrderItemUpdateInput
+  ): Promise<OrderItem> {
     return await this.prisma.orderItem.update({
       where: { id, deletedAt: null },
-      data
+      data,
     });
   }
 
@@ -78,6 +92,43 @@ export class OrderItemRepository implements IOrderItemRepository {
     return await this.prisma.orderItem.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  async findComplex(id: number, user_id: number) {
+    return await this.prisma.orderItem.findMany({
+      where: {
+        OR: [{ id }, { user_id }],
+      },
+    });
+  }
+
+  async getStats() {
+    return await this.prisma.orderItem.aggregate({
+      _count: {
+        id: true,
+      },
+      _avg: {
+        quantity: true,
+      },
+      _sum: {
+        quantity: true,
+      },
+      _min: {
+        quantity: true,
+      },
+      _max: {
+        quantity: true,
+      },
+    });
+  }
+
+  async getOrderItemsByOrder() {
+    return await this.prisma.orderItem.groupBy({
+      by: ["id"],
+      _count: {
+        id: true,
+      },
     });
   }
 }

@@ -64,6 +64,7 @@ export interface IOrderService {
     orderItems: Array<{ product_id: number; quantity: number }>;
     user_id: number;
   }): Promise<CheckoutResponse>;
+  exec(): Promise<{ overview: any; byCategory: any }>;
 }
 
 export class OrderService implements IOrderService {
@@ -254,7 +255,7 @@ export class OrderService implements IOrderService {
 
   async exec() {
     const state = await this.orderRepo.getStats();
-    const category = await this.orderRepo.getStatsByUser(user_id);
+    const category = await this.orderRepo.getOrderById();
 
     return { overview: state, byCategory: category };
   }

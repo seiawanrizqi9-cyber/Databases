@@ -8,10 +8,18 @@ export interface IOrderItemController {
   create: (req: Request, res: Response) => Promise<void>;
   update: (req: Request, res: Response) => Promise<void>;
   delete: (req: Request, res: Response) => Promise<void>;
+  getStats: (req: Request, res: Response) => Promise<void>;
 }
 
 export class OrderItemController implements IOrderItemController {
-  constructor(private orderItemService: IOrderItemService) {}
+  constructor(private orderItemService: IOrderItemService) {
+    this.list = this.list.bind(this);
+    this.getById = this.getById.bind(this);
+    this.create = this.create.bind(this);
+    this.update = this.update.bind(this);
+    this.delete = this.delete.bind(this);
+    this.getStats = this.getStats.bind(this);
+  }
 
   async list(req: Request, res: Response): Promise<void> {
     try {
@@ -104,6 +112,15 @@ export class OrderItemController implements IOrderItemController {
       successResponse(res, "Order item berhasil dihapus", deleted);
     } catch (error: any) {
       throw new Error(error.message || "Gagal menghapus order item");
+    }
+  }
+
+  async getStats(_req: Request, res: Response): Promise<void> {
+    try {
+      const stats = await this.orderItemService.exec();
+      successResponse(res, "Statistik berhasil diambil", stats);
+    } catch (error: any) {
+      throw new Error(error.message || "Terjadi kesalahan");
     }
   }
 }

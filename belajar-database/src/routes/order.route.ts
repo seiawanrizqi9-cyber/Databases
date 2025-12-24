@@ -21,6 +21,7 @@ const controller = new OrderController(service);
 
 // Routes
 router.get("/", authenticate, controller.list);
+router.get("/stats", authenticate, controller.getStats);
 router.get("/:id", authenticate, validate(getOrderByIdValidation), controller.getById);
 router.post("/", authenticate, validate(createOrderValidation), controller.create);
 router.post("/checkout", authenticate, validate(checkoutValidation), controller.checkout);

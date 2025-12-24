@@ -14,7 +14,11 @@ export interface IOrderRepository {
   findById(id: number): Promise<Order | null>;
   findComplex(id: number, user_id: number): Promise<Order[]>;
   getStats(): Promise<Prisma.GetOrderAggregateType<{ _count: { id: true } }>>;
-  getStatsByUser(user_id: number): Promise<Prisma.GetOrderAggregateType<{}>>;
+  getOrderById(): Promise<(Prisma.PickEnumerable<Prisma.OrderGroupByOutputType, "id"[]> & {
+    _count: {
+        id: number;
+    };
+})[]>
 }
 
 export class OrderRepository implements IOrderRepository {
@@ -117,23 +121,11 @@ export class OrderRepository implements IOrderRepository {
     });
   }
 
-  async getStatsByUser(user_id: number) {
-    return await this.prisma.order.aggregate({
-      where: { user_id },
+  async getOrderById() {
+    return await this.prisma.order.groupBy({
+      by: ["id"],
       _count: {
         id: true,
-      },
-      _avg: {
-        total: true,
-      },
-      _sum: {
-        total: true,
-      },
-      _min: {
-        total: true,
-      },
-      _max: {
-        total: true,
       },
     });
   }

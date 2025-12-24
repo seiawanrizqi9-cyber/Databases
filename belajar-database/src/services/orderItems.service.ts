@@ -31,6 +31,7 @@ export interface IOrderItemService {
   }): Promise<OrderItem>;
   update(id: string, data: Partial<OrderItem>): Promise<OrderItem>;
   delete(id: string): Promise<OrderItem>;
+  exec(): Promise<{ overview: any; byCategory: any }>
 }
 
 export class OrderItemService implements IOrderItemService {
@@ -121,5 +122,12 @@ export class OrderItemService implements IOrderItemService {
   async delete(id: string): Promise<OrderItem> {
     const numId = parseInt(id);
     return await this.orderItemRepo.softDelete(numId);
+  }
+
+  async exec () {
+    const state = await this.orderItemRepo.getStats();
+    const category = await this.orderItemRepo.getOrderItemsByOrder();
+
+    return { overview: state, byCategory: category };
   }
 }

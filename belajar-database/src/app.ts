@@ -16,6 +16,9 @@ import orderItemRouter from "./routes/orderItems.route";
 import authRouter from "./routes/auth.route";
 import { authenticate } from "./middleware/auth.validation";
 import profileRouter from "./routes/profile.route";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./utils/swagger";
+
 
 const app: Application = express();
 
@@ -303,6 +306,7 @@ app.use("/api/orders", authenticate, orderRouter);
 app.use("/api/order-items", orderItemRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profiles", profileRouter);
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));  ;
 
 app.get(/.*/, (req: Request, _res: Response) => {
   throw new Error(`Route ${req.originalUrl} tidak ada di API E-Commerce`);
