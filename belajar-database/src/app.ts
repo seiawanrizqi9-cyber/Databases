@@ -29,11 +29,12 @@ app.use(express.json());
 app.set("query parser", "extended");
 app.use(express.static("public"));
 
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.get("/", (_req: Request, res: Response) => {
   successResponse(res, "Selamat Datang Di API E-Commerce!", {
     hari: 5,
     status: "Server hidup!",
-    note: "Semua endpoint memerlukan header: X-API-Key: katasandi123",
 
     // 🔐 AUTHENTICATION ENDPOINTS
     authentication: [
@@ -281,32 +282,12 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const apiKey = req.headers["x-api-key"];
-  if (!apiKey) {
-    return res.status(401).json({
-      success: false,
-      message: "Header X-API-Key wajib diisi untuk akses API!",
-    });
-  }
-
-  if (apiKey !== "katasandi123") {
-    return res.status(401).json({
-      success: false,
-      message: "API Key tidak valid!",
-    });
-  }
-
-  next();
-});
-
 app.use("/api/products", productRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/orders", authenticate, orderRouter);
 app.use("/api/order-items", orderItemRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profiles", profileRouter);
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));  ;
 
 app.get(/.*/, (req: Request, _res: Response) => {
   throw new Error(`Route ${req.originalUrl} tidak ada di API E-Commerce`);

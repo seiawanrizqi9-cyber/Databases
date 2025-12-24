@@ -14,7 +14,7 @@ const option: swaggerJSDoc.Options = {
         },
         servers: [
             {
-                url: `${config.HOST}:${config.PORT}`,
+                url: `${config.HOST}:${config.PORT}/api`,
                 description: 'Development server',
             }
         ],
