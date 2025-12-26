@@ -222,7 +222,12 @@ router.get("/:id", validate(getCategoryByIdValidation), controller.getById);
  *       403:
  *         description: Bukan admin
  */
-router.post("/", authenticate, validate(createCategoryValidation), controller.create);
+router.post(
+  "/",
+  authenticate,
+  validate(createCategoryValidation),
+  controller.create
+);
 
 /**
  * @swagger
@@ -266,7 +271,12 @@ router.post("/", authenticate, validate(createCategoryValidation), controller.cr
  *       404:
  *         description: Kategori tidak ditemukan
  */
-router.put("/:id", authenticate, validate(getCategoryByIdValidation), controller.update);
+router.put(
+  "/:id",
+  authenticate,
+  validate(getCategoryByIdValidation),
+  controller.update
+);
 
 /**
  * @swagger
@@ -304,6 +314,11 @@ router.put("/:id", authenticate, validate(getCategoryByIdValidation), controller
  *       404:
  *         description: Kategori tidak ditemukan
  */
-router.delete("/:id", authenticate, validate(getCategoryByIdValidation), controller.delete);
+router.delete(
+  "/:id",
+  authenticate,
+  validate(getCategoryByIdValidation),
+  controller.delete
+);
 
 export default router;

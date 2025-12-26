@@ -4,7 +4,7 @@ import type {
   PrismaClient,
   Product,
 } from "../generated/client";
-import type { Decimal } from "../generated/internal/prismaNamespace";
+import type { Decimal } from "../generated/runtime/client";
 
 export interface CategoryStats {
   categoryId: number;

@@ -1,47 +1,39 @@
-import type { NextFunction, Request, Response } from "express";
+import type { Request, Response, NextFunction } from 'express';
+import { errorResponse } from '../utils/response';
+import config from "../utils/env";
 import { Prisma } from "../generated/client";
-import { errorResponse } from "../utils/response";
 
-export const errorHandler = (
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-) => {
-  console.error("ERROR:", err.message);
+export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction) => {
+  console.error('ERROR:', err.message);
 
-  const statusCode = err.message.includes("tidak ditemukan") ? 404 : 400;
+  let statusCode = 500;
+  let message = err.message || 'Terjadi kesalahan server';
+  let errors = null;
 
+  // Handle Prisma Errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === "P2002") {
-      errorResponse(
-        res,
-        `Data sudah ada (Unique Constraint violation) \n ${err.message}`,
-        statusCode,
-        process.env.NODE_ENV === "development"
-          ? ({ stack: err.stack } as { stack?: string })
-          : null
-      );
+    statusCode = 400;
+    if (err.code === 'P2002') {
+      message = "Data sudah ada (Unique constraint violation)";
+      errors = [{ field: (err.meta?.target as string[])?.join(', '), message: "Sudah terdaftar" }];
+    } else if (err.code === 'P2025') {
+      statusCode = 404;
+      message = "Data tidak ditemukan";
     }
-
-    if (err.code === "P2025") {
-      errorResponse(
-        res,
-        `Data tidak ditemukan \n${err.message}`,
-        statusCode,
-        process.env.NODE_ENV === "development"
-          ? ({ stack: err.stack } as { stack?: string })
-          : null
-      );
+  }
+  // Handle Validation or Business Logic Errors
+  else if (statusCode === 500) {
+    if (message.includes('tidak ditemukan') || message.includes('not found')) {
+      statusCode = 404;
+    } else if (message.includes('salah') || message.includes('invalid') || message.includes('sudah terdaftar')) {
+      statusCode = 400;
     }
   }
 
-  errorResponse(
-    res,
-    err.message || "Terjadi kesalahan server",
-    statusCode,
-    process.env.NODE_ENV === "development"
-      ? ({ stack: err.stack } as { stack?: string })
-      : null
-  );
+  // Only show stack trace for status 500 in Development
+  const errorDetails = config.NODE_ENV === 'development' && statusCode === 500
+    ? { stack: err.stack }
+    : errors;
+
+  return errorResponse(res, message, statusCode, errorDetails);
 };
